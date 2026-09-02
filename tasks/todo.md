@@ -9,8 +9,8 @@
 - [x] Phase 6: Run full verification (Cairn 23-suite tests + PixieVault 4-tier `./test-all.sh`) <!-- id: 1206 -->
 
 ## 13. Public Repository Preparation & GitHub Push
-- [ ] Phase 1: Update `.gitignore` to strictly exclude all guest apps (`apps/`, `MikrotikFleetMgr/`, `src-tauri/apps/`, `dist/`), temporary databases, and caches <!-- id: 1301 -->
-- [ ] Phase 2: Create high-impact, professional `README.md` showcasing architecture, features, security model, and quickstart <!-- id: 1302 -->
-- [ ] Phase 3: Stage all core wrapper files and verify `git status` contains zero app packages or leaked artifacts <!-- id: 1303 -->
-- [ ] Phase 4: Configure remote `https://github.com/pixie-technology-code/PixieVault` and push <!-- id: 1304 -->
+- [x] Phase 1: Update `.gitignore` to strictly exclude all guest apps (`apps/`, `MikrotikFleetMgr/`, `src-tauri/apps/`, `dist/`), temporary databases, and caches <!-- id: 1301 -->
+- [x] Phase 2: Create high-impact, professional `README.md` showcasing architecture, features, security model, and quickstart <!-- id: 1302 -->
+- [x] Phase 3: Stage all core wrapper files and verify `git status` contains zero app packages or leaked artifacts <!-- id: 1303 -->
+- [x] Phase 4: Configure remote `https://github.com/pixie-technology-code/PixieVault` and push <!-- id: 1304 -->
 
