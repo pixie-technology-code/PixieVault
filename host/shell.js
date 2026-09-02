@@ -755,6 +755,33 @@ function closeInstallAppModal() {
   document.getElementById("install-status-msg").innerText = "";
 }
 
+function showIncompatibilityModal(report) {
+  const modal = document.getElementById("modal-incompatibility-report");
+  if (!modal) return;
+
+  document.getElementById("incompat-app-name").innerText = `${report.app_name || report.app_id || "Package"} (v${report.app_version || "unknown"})`;
+  document.getElementById("incompat-req-version").innerText = `≥ ${report.min_pixievault_version || "Unknown"}`;
+  document.getElementById("incompat-host-version").innerText = report.host_version || "0.2.0";
+
+  const statusBadge = document.getElementById("incompat-status-badge");
+  if (statusBadge) {
+    statusBadge.innerText = `REJECTED (${(report.status || "INCOMPATIBLE").toUpperCase().replace(/_/g, " ")})`;
+  }
+
+  const reasonsList = document.getElementById("incompat-reasons-list");
+  if (reasonsList) {
+    reasonsList.innerHTML = "";
+    const reasons = report.reasons || [report.message || "Unspecified compatibility error"];
+    for (const r of reasons) {
+      const li = document.createElement("li");
+      li.innerText = r;
+      reasonsList.appendChild(li);
+    }
+  }
+
+  modal.style.display = "flex";
+}
+
 async function triggerNativePackagePicker() {
   const statusEl = document.getElementById("install-status-msg");
   if (statusEl) statusEl.innerText = "Opening native OS package picker...";
@@ -770,7 +797,18 @@ async function triggerNativePackagePicker() {
       }, 1000);
     }
   } catch (err) {
-    if (statusEl) statusEl.innerHTML = `<span style="color:var(--app-danger-color)">${err.message || err}</span>`;
+    const errMsg = err.message || String(err);
+    if (errMsg.includes("Incompatible") || errMsg.includes("is older than")) {
+      closeInstallAppModal();
+      showIncompatibilityModal({
+        app_name: "Imported Package",
+        reasons: [errMsg],
+        status: "incompatible_version",
+        host_version: "0.2.0"
+      });
+    } else {
+      if (statusEl) statusEl.innerHTML = `<span style="color:var(--app-danger-color)">${errMsg}</span>`;
+    }
   }
 }
 
@@ -789,7 +827,18 @@ async function triggerNativeFolderPicker() {
       }, 1000);
     }
   } catch (err) {
-    if (statusEl) statusEl.innerHTML = `<span style="color:var(--app-danger-color)">${err.message || err}</span>`;
+    const errMsg = err.message || String(err);
+    if (errMsg.includes("Incompatible") || errMsg.includes("is older than")) {
+      closeInstallAppModal();
+      showIncompatibilityModal({
+        app_name: "Imported Directory",
+        reasons: [errMsg],
+        status: "incompatible_version",
+        host_version: "0.2.0"
+      });
+    } else {
+      if (statusEl) statusEl.innerHTML = `<span style="color:var(--app-danger-color)">${errMsg}</span>`;
+    }
   }
 }
 
@@ -811,7 +860,18 @@ async function handleGitHubInstall(e) {
       switchWorkspace(res.manifest.app_id);
     }, 1000);
   } catch (err) {
-    if (statusEl) statusEl.innerHTML = `<span style="color:var(--app-danger-color)">Error: ${err.message || err}</span>`;
+    const errMsg = err.message || String(err);
+    if (errMsg.includes("Incompatible") || errMsg.includes("is older than")) {
+      closeInstallAppModal();
+      showIncompatibilityModal({
+        app_name: repo,
+        reasons: [errMsg],
+        status: "incompatible_version",
+        host_version: "0.2.0"
+      });
+    } else {
+      if (statusEl) statusEl.innerHTML = `<span style="color:var(--app-danger-color)">Error: ${errMsg}</span>`;
+    }
   }
 }
 

@@ -482,6 +482,54 @@
     </div>
   </div>
 
+  <!-- ================= Modal: Package Incompatibility Report ================= -->
+  <div id="modal-incompatibility-report" class="modal-backdrop" style="display:none;">
+    <div class="modal-card modal-card-md">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:0.6rem;">
+          <svg viewBox="0 0 24 24" width="24" height="24" stroke="var(--app-danger-color)" stroke-width="2" fill="none">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <h3 id="incompat-modal-title">Package Compatibility Incompatible</h3>
+        </div>
+        <button class="modal-close" onclick="closeModal('modal-incompatibility-report')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--app-text-muted); font-size:0.85rem; margin-bottom:1.25rem;">
+          This application cannot be installed on your current PixieVault environment due to compatibility constraints. No filesystem changes were made.
+        </p>
+
+        <div style="background:var(--app-card-bg-elevated); border:1px solid var(--app-border-color); border-radius:var(--app-radius-md); padding:1rem; margin-bottom:1rem;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem;">
+            <span style="font-size:0.82rem; font-weight:700;">Application:</span>
+            <span id="incompat-app-name" style="font-size:0.82rem; color:var(--app-text-primary); font-weight:600;"></span>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem;">
+            <span style="font-size:0.82rem; font-weight:700;">Required Host Version:</span>
+            <span id="incompat-req-version" style="font-size:0.82rem; color:var(--app-danger-color); font-weight:600;"></span>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem;">
+            <span style="font-size:0.82rem; font-weight:700;">Your PixieVault Version:</span>
+            <span id="incompat-host-version" style="font-size:0.82rem; color:var(--app-text-muted);"></span>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="font-size:0.82rem; font-weight:700;">Pre-Mutation Status:</span>
+            <span class="badge badge-danger" id="incompat-status-badge">REJECTED (NO MUTATION)</span>
+          </div>
+        </div>
+
+        <div id="incompat-reasons-box" style="margin-bottom:1.2rem; background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.3); border-radius:var(--app-radius-md); padding:0.8rem;">
+          <div style="font-size:0.8rem; font-weight:700; color:var(--app-danger-color); margin-bottom:0.4rem;">Incompatibility Details:</div>
+          <ul id="incompat-reasons-list" style="margin:0; padding-left:1.2rem; font-size:0.8rem; color:var(--app-text-primary);"></ul>
+        </div>
+
+        <button class="btn btn-secondary btn-full" onclick="closeModal('modal-incompatibility-report')">Cancel & Dismiss (No Changes Made)</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div id="toast-container" class="toast-container"></div>
 

@@ -229,7 +229,7 @@ impl SandboxManager {
                 }
 
                 // Ensure child dies with parent host on Linux
-                #[cfg(unix)]
+                #[cfg(target_os = "linux")]
                 unsafe {
                     use std::os::unix::process::CommandExt;
                     cmd.pre_exec(|| {
@@ -274,7 +274,7 @@ impl SandboxManager {
                     cmd.env(k, v);
                 }
 
-                #[cfg(unix)]
+                #[cfg(target_os = "linux")]
                 unsafe {
                     use std::os::unix::process::CommandExt;
                     cmd.pre_exec(|| {
