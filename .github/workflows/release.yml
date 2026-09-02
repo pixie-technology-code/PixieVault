@@ -22,8 +22,11 @@ jobs:
       matrix:
         include:
           - platform: 'ubuntu-22.04'
+            bundles: '--bundles appimage,deb'
           - platform: 'windows-latest'
+            bundles: '--bundles nsis'
           - platform: 'macos-latest'
+            bundles: '--bundles dmg,app'
 
     runs-on: ${{ matrix.platform }}
 
@@ -55,7 +58,7 @@ jobs:
           node scripts/sync-bridge.js
 
       - name: Build Tauri Desktop Application Bundle
-        run: npx --yes @tauri-apps/cli@^2.0.0 build --ci --verbose
+        run: npx --yes @tauri-apps/cli@^2.0.0 build --ci --verbose ${{ matrix.bundles }}
         env:
           APPIMAGE_EXTRACT_AND_RUN: 1
 
