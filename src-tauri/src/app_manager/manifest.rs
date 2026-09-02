@@ -13,6 +13,10 @@ pub enum ManifestError {
     Parse(#[from] serde_json::Error),
     #[error("Missing required field: {0}")]
     MissingField(String),
+    #[error("Invalid version format: {0}")]
+    InvalidVersion(String),
+    #[error("Incompatible host version: required {required}, but host is {host}")]
+    IncompatibleHostVersion { required: String, host: String },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -190,6 +194,7 @@ pub struct AppManifest {
     pub app_id: String,
     pub name: String,
     pub version: String,
+    pub min_pixievault_version: String,
     #[serde(default)]
     pub description: String,
     #[serde(default = "default_entrypoint")]
@@ -199,6 +204,8 @@ pub struct AppManifest {
     #[serde(default)]
     pub permissions: AppPermissions,
     pub theme_compatibility: Option<ThemeCompatibility>,
+    #[serde(default)]
+    pub required_capabilities: Vec<String>,
 
     // Declarative Native Composer Configuration (Optional)
     pub composer: Option<ComposerConfig>,
@@ -231,7 +238,46 @@ impl AppManifest {
         if self.version.trim().is_empty() {
             return Err(ManifestError::MissingField("version".to_string()));
         }
+        if self.min_pixievault_version.trim().is_empty() {
+            return Err(ManifestError::MissingField("min_pixievault_version".to_string()));
+        }
+        semver::Version::parse(self.min_pixievault_version.trim()).map_err(|e| {
+            ManifestError::InvalidVersion(format!(
+                "Invalid 'min_pixievault_version' '{}': {}",
+                self.min_pixievault_version, e
+            ))
+        })?;
+        semver::Version::parse(self.version.trim()).map_err(|e| {
+            ManifestError::InvalidVersion(format!(
+                "Invalid 'version' '{}': {}",
+                self.version, e
+            ))
+        })?;
         Ok(())
+    }
+
+    pub fn is_compatible_with_host(&self, host_version: &str) -> Result<bool, ManifestError> {
+        self.validate()?;
+        let req_ver = semver::Version::parse(self.min_pixievault_version.trim()).map_err(|e| {
+            ManifestError::InvalidVersion(format!(
+                "Invalid 'min_pixievault_version' '{}': {}",
+                self.min_pixievault_version, e
+            ))
+        })?;
+        let host_ver = semver::Version::parse(host_version.trim()).map_err(|e| {
+            ManifestError::InvalidVersion(format!(
+                "Invalid host version '{}': {}",
+                host_version, e
+            ))
+        })?;
+
+        if req_ver > host_ver {
+            return Err(ManifestError::IncompatibleHostVersion {
+                required: self.min_pixievault_version.clone(),
+                host: host_version.to_string(),
+            });
+        }
+        Ok(true)
     }
 
     pub fn has_composer(&self) -> bool {

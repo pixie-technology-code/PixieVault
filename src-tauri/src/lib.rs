@@ -33,6 +33,8 @@ pub fn run() {
                     .join("apps")
             };
 
+            let _ = std::fs::create_dir_all(&bundled_apps_dir);
+
             if !bundled_apps_dir.is_dir() {
                 return Err(format!(
                     "Bundled applications directory is missing: {}",
@@ -124,6 +126,8 @@ pub fn run() {
             commands::pv_pick_and_install_local_app,
             commands::pv_pick_and_install_package_file,
             commands::pv_pick_and_install_local_folder,
+            commands::pv_check_package_compatibility,
+            commands::pv_check_manifest_compatibility,
             commands::pv_install_local_directory,
             commands::pv_install_package_file,
             commands::pv_export_app_package,

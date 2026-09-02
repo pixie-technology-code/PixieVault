@@ -24,7 +24,7 @@ fn test_zipslip_traversal_rejection() {
 
         // Valid manifest
         zip.start_file("manifest.json", options).unwrap();
-        zip.write_all(br#"{"app_id":"malicious_test","name":"Malicious","version":"1.0.0","entrypoint":"index.html"}"#).unwrap();
+        zip.write_all(br#"{"app_id":"malicious_test","name":"Malicious","version":"1.0.0","min_pixievault_version":"0.2.0","entrypoint":"index.html"}"#).unwrap();
 
         // Malicious traversal path
         zip.start_file("../outside.txt", options).unwrap();
@@ -54,6 +54,7 @@ fn test_manifest_strict_permission_checks() {
         app_id: "restricted_app".to_string(),
         name: "Restricted App".to_string(),
         version: "1.0.0".to_string(),
+        min_pixievault_version: "0.2.0".to_string(),
         description: String::new(),
         entrypoint: "index.html".to_string(),
         author: None,
@@ -66,6 +67,7 @@ fn test_manifest_strict_permission_checks() {
             requested_write: vec![],
         },
         theme_compatibility: None,
+        required_capabilities: vec![],
         composer: None,
         source: None,
         signature: None,
@@ -152,12 +154,14 @@ server.serve_forever()
         app_id: "sandboxed_test_service".to_string(),
         name: "Sandboxed Test Service".to_string(),
         version: "1.0.0".to_string(),
+        min_pixievault_version: "0.2.0".to_string(),
         description: "Sandbox integration test".to_string(),
         entrypoint: "http://127.0.0.1:{{services.web.port}}/".to_string(),
         author: None,
         presentation: None,
         permissions: AppPermissions::default(),
         theme_compatibility: None,
+        required_capabilities: vec![],
         composer: Some(ComposerConfig {
             version: "1".to_string(),
             services: {

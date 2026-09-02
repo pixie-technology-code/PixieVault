@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 pub mod bus;
+pub mod compatibility;
 pub mod manifest;
 pub mod provisioning;
 pub mod registry;
@@ -27,6 +28,9 @@ pub fn canonicalize_clean(p: &Path) -> PathBuf {
 }
 
 pub use bus::{InterAppBus, MetricValue};
+pub use compatibility::{
+    CompatibilityChecker, CompatibilityReport, CompatibilityStatus, CURRENT_HOST_VERSION,
+};
 pub use manifest::{
     AppManifest, AppPermissions, ComposerConfig, HealthcheckConfig, ManifestError,
     PresentationConfig, RuntimeConfig, SandboxConfig, ServiceConfig, ThemeCompatibility,

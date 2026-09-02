@@ -169,6 +169,17 @@ impl AppRegistry {
         let mut manifest = AppManifest::load_from_file(&manifest_path)
             .map_err(|e| format!("Invalid manifest: {}", e))?;
 
+        // Pre-mutation compatibility check before copying or mounting
+        let compat = super::compatibility::CompatibilityChecker::check(&manifest);
+        if !compat.is_compatible {
+            return Err(format!(
+                "Incompatible application '{}' (status: {:?}): {}",
+                manifest.app_id,
+                compat.status,
+                compat.reasons.join("; ")
+            ));
+        }
+
         let source = AppSource::LocalDirectory(dir_path.clone());
         manifest.source = Some(source.clone());
 

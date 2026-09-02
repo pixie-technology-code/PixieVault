@@ -16,6 +16,7 @@ fn test_package_bundler_export_and_extract_roundtrip() {
       "app_id": "test_app_v1",
       "name": "Test Portable App",
       "version": "1.0.0",
+      "min_pixievault_version": "0.2.0",
       "description": "Portable all-in-one bundle test",
       "entrypoint": "index.html"
     }"#;
@@ -43,6 +44,45 @@ fn test_package_bundler_export_and_extract_roundtrip() {
 
     let extracted_html = fs::read_to_string(extract_dir.join("index.html")).unwrap();
     assert_eq!(extracted_html, "<h1>Hello Portable World</h1>");
+}
+
+#[test]
+fn test_package_bundler_pre_mutation_guarantee_on_incompatible_package() {
+    let temp_dir = tempfile::tempdir().expect("Failed to create tempdir");
+    let app_dir = temp_dir.path().join("future_app");
+    fs::create_dir_all(&app_dir).unwrap();
+
+    let manifest_content = r#"{
+      "app_id": "future_app",
+      "name": "Future Host App",
+      "version": "1.0.0",
+      "min_pixievault_version": "99.0.0",
+      "description": "Requires future host",
+      "entrypoint": "index.html"
+    }"#;
+    fs::write(app_dir.join("manifest.json"), manifest_content).unwrap();
+    fs::write(app_dir.join("index.html"), "<h1>Future</h1>").unwrap();
+
+    let output_package = temp_dir.path().join("future_app.pvpkg");
+    PackageBundler::export_package(&app_dir, None, &output_package).expect("Export failed");
+
+    // Attempt inspection without extraction
+    let inspected = PackageBundler::inspect_package_manifest(&output_package).expect("Inspection failed");
+    assert_eq!(inspected.app_id, "future_app");
+    assert_eq!(inspected.min_pixievault_version, "99.0.0");
+
+    // Attempt extraction -> MUST FAIL with incompatibility error
+    let extract_dir = temp_dir.path().join("destination_that_should_not_exist");
+    let result = PackageBundler::extract_package(&output_package, &extract_dir);
+    assert!(result.is_err(), "Incompatible package extraction must fail");
+    let err = result.unwrap_err();
+    assert!(err.contains("is older than required minimum"));
+
+    // PRE-MUTATION GUARANTEE: destination directory must NOT contain extracted files
+    assert!(
+        !extract_dir.join("index.html").exists(),
+        "Non-mutation guarantee: zero files must be extracted upon incompatibility rejection"
+    );
 }
 
 #[test]
@@ -86,6 +126,7 @@ fn test_registry_local_directory_and_github_targets() {
       "app_id": "local_dev_tool",
       "name": "Local Dev Tool",
       "version": "0.1.0",
+      "min_pixievault_version": "0.2.0",
       "entrypoint": "index.html"
     }"#;
     fs::write(local_dev_dir.join("manifest.json"), manifest).unwrap();
@@ -105,7 +146,8 @@ fn test_registry_local_directory_and_github_targets() {
     let gh_manifest = r#"{
       "app_id": "williamhart_dyno_tuner",
       "name": "Dyno Tuner",
-      "version": "v1.4.0",
+      "version": "1.4.0",
+      "min_pixievault_version": "0.2.0",
       "entrypoint": "index.html"
     }"#;
     fs::write(gh_install_dir.join("manifest.json"), gh_manifest).unwrap();
@@ -113,19 +155,19 @@ fn test_registry_local_directory_and_github_targets() {
     let installed_gh = registry
         .install_github_target(
             "williamhart-az/dyno-tuner",
-            Some("v1.4.0"),
+            Some("1.4.0"),
             Some("base64_pubkey_placeholder"),
             &gh_install_dir,
         )
         .expect("Install GitHub target failed");
 
-    assert_eq!(installed_gh.manifest.version, "v1.4.0");
+    assert_eq!(installed_gh.manifest.version, "1.4.0");
     if let AppSource::GitHubRelease {
         repository, tag, ..
     } = installed_gh.source
     {
         assert_eq!(repository, "williamhart-az/dyno-tuner");
-        assert_eq!(tag, "v1.4.0");
+        assert_eq!(tag, "1.4.0");
     } else {
         panic!("Expected GitHubRelease source type");
     }

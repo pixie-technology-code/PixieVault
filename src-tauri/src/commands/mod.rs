@@ -884,6 +884,26 @@ pub async fn pv_pick_and_install_local_app(
 }
 
 #[tauri::command]
+pub fn pv_check_package_compatibility(
+    package_file: String,
+) -> Result<crate::app_manager::CompatibilityReport, String> {
+    let pkg_path = PathBuf::from(&package_file);
+    let manifest = crate::app_manager::PackageBundler::inspect_package_manifest(&pkg_path)?;
+    let report = crate::app_manager::CompatibilityChecker::check(&manifest);
+    Ok(report)
+}
+
+#[tauri::command]
+pub fn pv_check_manifest_compatibility(
+    manifest_json: String,
+) -> Result<crate::app_manager::CompatibilityReport, String> {
+    let manifest: crate::app_manager::AppManifest = serde_json::from_str(&manifest_json)
+        .map_err(|e| format!("Invalid manifest JSON schema: {}", e))?;
+    let report = crate::app_manager::CompatibilityChecker::check(&manifest);
+    Ok(report)
+}
+
+#[tauri::command]
 pub fn pv_install_local_directory(
     dir_path: String,
     state: State<Arc<AppState>>,

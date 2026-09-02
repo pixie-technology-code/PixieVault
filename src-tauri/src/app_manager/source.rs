@@ -76,11 +76,46 @@ impl PackageBundler {
         Ok(())
     }
 
-    /// Extract an all-in-one .pvpkg archive into a destination directory safely with ZipSlip protection
+    /// Inspect an all-in-one .pvpkg archive and read its manifest without extracting files
+    pub fn inspect_package_manifest(package_file: &Path) -> Result<AppManifest, String> {
+        let file =
+            File::open(package_file).map_err(|e| format!("Failed to open package file: {}", e))?;
+        let mut archive =
+            ZipArchive::new(file).map_err(|e| format!("Invalid zip archive: {}", e))?;
+
+        let mut manifest_file = archive
+            .by_name("manifest.json")
+            .map_err(|_| "Package missing root manifest.json".to_string())?;
+
+        let mut buf = Vec::new();
+        manifest_file
+            .read_to_end(&mut buf)
+            .map_err(|e| e.to_string())?;
+        let manifest: AppManifest = serde_json::from_slice(&buf)
+            .map_err(|e| format!("Failed to parse manifest.json: {}", e))?;
+        manifest
+            .validate()
+            .map_err(|e| format!("Invalid manifest: {}", e))?;
+        Ok(manifest)
+    }
+
+    /// Extract an all-in-one .pvpkg archive into a destination directory safely with pre-mutation compatibility validation and ZipSlip protection
     pub fn extract_package(
         package_file: &Path,
         destination_dir: &Path,
     ) -> Result<(AppManifest, Option<Vec<u8>>), String> {
+        // 1. Pre-mutation gate: Inspect manifest in memory and enforce compatibility before touching disk
+        let manifest = Self::inspect_package_manifest(package_file)?;
+        let compat = super::compatibility::CompatibilityChecker::check(&manifest);
+        if !compat.is_compatible {
+            return Err(format!(
+                "Incompatible package '{}' (status: {:?}): {}",
+                manifest.app_id,
+                compat.status,
+                compat.reasons.join("; ")
+            ));
+        }
+
         let file =
             File::open(package_file).map_err(|e| format!("Failed to open package file: {}", e))?;
         let mut archive =
@@ -88,7 +123,6 @@ impl PackageBundler {
 
         fs::create_dir_all(destination_dir).map_err(|e| e.to_string())?;
 
-        let mut manifest_opt: Option<AppManifest> = None;
         let mut vault_data_opt: Option<Vec<u8>> = None;
 
         for i in 0..archive.len() {
@@ -104,16 +138,9 @@ impl PackageBundler {
             }
 
             if name == "manifest.json" {
-                let mut buf = Vec::new();
-                file.read_to_end(&mut buf).map_err(|e| e.to_string())?;
-                let manifest: AppManifest = serde_json::from_slice(&buf)
-                    .map_err(|e| format!("Failed to parse manifest.json: {}", e))?;
-                manifest_opt = Some(manifest);
-
-                // Also write manifest to destination
                 let outpath = destination_dir.join("manifest.json");
                 let mut outfile = File::create(outpath).map_err(|e| e.to_string())?;
-                outfile.write_all(&buf).map_err(|e| e.to_string())?;
+                std::io::copy(&mut file, &mut outfile).map_err(|e| e.to_string())?;
             } else if name == "data/encrypted_state.pvlt" {
                 let mut buf = Vec::new();
                 file.read_to_end(&mut buf).map_err(|e| e.to_string())?;
@@ -152,8 +179,6 @@ impl PackageBundler {
             }
         }
 
-        let manifest =
-            manifest_opt.ok_or_else(|| "Package missing root manifest.json".to_string())?;
         Ok((manifest, vault_data_opt))
     }
 

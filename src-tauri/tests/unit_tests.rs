@@ -54,6 +54,7 @@ fn test_manifest_schema_and_launch_url_resolution() {
       "app_id": "test_static_app",
       "name": "Test Static App",
       "version": "1.0.0",
+      "min_pixievault_version": "0.2.0",
       "entrypoint": "index.html"
     }"#;
 
@@ -72,6 +73,7 @@ fn test_manifest_composer_healthcheck_expected_status() {
       "app_id": "test_composer_app",
       "name": "Test Composer App",
       "version": "1.0.0",
+      "min_pixievault_version": "0.2.0",
       "entrypoint": "http://127.0.0.1:{{services.web.port}}/",
       "composer": {
         "version": "1",
@@ -107,6 +109,65 @@ fn test_manifest_composer_healthcheck_expected_status() {
         manifest.resolve_entrypoint(&port_map),
         "http://127.0.0.1:8080/"
     );
+}
+
+#[test]
+fn test_manifest_validation_compatibility_floor() {
+    use pixievault_lib::app_manager::{CompatibilityChecker, CompatibilityStatus, CURRENT_HOST_VERSION};
+
+    // Valid manifest matching current host
+    let valid_json = format!(
+        r#"{{
+            "app_id": "valid_compat_app",
+            "name": "Valid App",
+            "version": "1.0.0",
+            "min_pixievault_version": "{}",
+            "entrypoint": "index.html"
+        }}"#,
+        CURRENT_HOST_VERSION
+    );
+    let manifest: AppManifest = serde_json::from_str(&valid_json).unwrap();
+    assert!(manifest.validate().is_ok());
+    let report = CompatibilityChecker::check(&manifest);
+    assert!(report.is_compatible);
+    assert_eq!(report.status, CompatibilityStatus::Compatible);
+
+    // Missing min_pixievault_version
+    let missing_ver_json = r#"{
+        "app_id": "missing_ver_app",
+        "name": "Missing Ver App",
+        "version": "1.0.0",
+        "entrypoint": "index.html"
+    }"#;
+    let parse_res: Result<AppManifest, _> = serde_json::from_str(missing_ver_json);
+    assert!(parse_res.is_err(), "Missing min_pixievault_version must fail deserialization");
+
+    // Malformed min_pixievault_version (leading 'v' or non-semver)
+    let malformed_ver_json = r#"{
+        "app_id": "malformed_ver_app",
+        "name": "Malformed Ver App",
+        "version": "1.0.0",
+        "min_pixievault_version": "v0.2.0",
+        "entrypoint": "index.html"
+    }"#;
+    let manifest: AppManifest = serde_json::from_str(malformed_ver_json).unwrap();
+    let val_res = manifest.validate();
+    assert!(val_res.is_err(), "Malformed SemVer with 'v' prefix must fail validation");
+
+    // Incompatible future host version
+    let future_ver_json = r#"{
+        "app_id": "future_app",
+        "name": "Future App",
+        "version": "1.0.0",
+        "min_pixievault_version": "99.0.0",
+        "entrypoint": "index.html"
+    }"#;
+    let manifest: AppManifest = serde_json::from_str(future_ver_json).unwrap();
+    assert!(manifest.validate().is_ok());
+    let report = CompatibilityChecker::check(&manifest);
+    assert!(!report.is_compatible);
+    assert_eq!(report.status, CompatibilityStatus::IncompatibleVersion);
+    assert!(manifest.is_compatible_with_host(CURRENT_HOST_VERSION).is_err());
 }
 
 #[test]
@@ -258,6 +319,7 @@ fn test_app_registry_scans_arbitrary_folders() {
         "app_id": "shell_utility_app",
         "name": "Shell Utility",
         "version": "1.0.0",
+        "min_pixievault_version": "0.2.0",
         "entrypoint": "index.html"
     }"#,
     )
@@ -272,6 +334,7 @@ fn test_app_registry_scans_arbitrary_folders() {
         "app_id": "shared_resource_app",
         "name": "Shared Resource",
         "version": "1.0.0",
+        "min_pixievault_version": "0.2.0",
         "entrypoint": "index.html"
     }"#,
     )

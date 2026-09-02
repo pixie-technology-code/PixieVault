@@ -24,6 +24,7 @@ fn test_composer_manifest_parsing_and_template_resolution() {
       "app_id": "mikrotik_fleet_test",
       "name": "MikroTik Fleet Test",
       "version": "1.0.0",
+      "min_pixievault_version": "0.2.0",
       "entrypoint": "http://127.0.0.1:{{services.backend.port}}",
       "composer": {
         "version": "1",
@@ -82,6 +83,7 @@ fn test_vault_composer_lifecycle_and_shutdown() {
       "app_id": "dummy_static_app",
       "name": "Dummy Static App",
       "version": "1.0.0",
+      "min_pixievault_version": "0.2.0",
       "entrypoint": "index.html"
     }"#;
     fs::write(app_dir.join("manifest.json"), manifest_json).unwrap();
@@ -137,6 +139,7 @@ sys.exit(42)
       "app_id": "failing_test_app",
       "name": "Failing Test App",
       "version": "1.0.0",
+      "min_pixievault_version": "0.2.0",
       "entrypoint": "http://127.0.0.1:{{services.web.port}}/",
       "composer": {
         "version": "1",
@@ -208,6 +211,7 @@ with socketserver.TCPServer(('127.0.0.1', port), Handler) as httpd:
       "app_id": "python_test_app",
       "name": "Python Test App",
       "version": "1.0.0",
+      "min_pixievault_version": "0.2.0",
       "entrypoint": "http://127.0.0.1:{{services.web.port}}/",
       "composer": {
         "version": "1",

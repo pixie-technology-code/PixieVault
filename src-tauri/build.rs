@@ -82,8 +82,19 @@ fn stage_app_resources() -> io::Result<()> {
     let destination = manifest_dir.join("apps");
 
     println!("cargo:rerun-if-changed={}", source.display());
-    let _ = clean_destination_tree(&destination);
-    copy_clean_tree(&source, &destination)
+    fs::create_dir_all(&destination)?;
+    if source.exists() {
+        let _ = clean_destination_tree(&destination);
+        let _ = copy_clean_tree(&source, &destination);
+    }
+
+    // Ensure destination directory always contains at least a placeholder file
+    // so Tauri v2 resource glob matching (`apps/**/*`) succeeds even on clean CI checkouts
+    let placeholder = destination.join(".gitkeep");
+    if !placeholder.exists() {
+        let _ = fs::write(&placeholder, "");
+    }
+    Ok(())
 }
 
 

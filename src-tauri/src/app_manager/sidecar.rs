@@ -874,12 +874,14 @@ impl VaultComposer {
             app_id: app_id.to_string(),
             name: app_id.to_string(),
             version: "1.0.0".to_string(),
+            min_pixievault_version: "0.1.0".to_string(),
             description: String::new(),
             entrypoint: format!("http://127.0.0.1:{}", port),
             author: None,
             presentation: None,
             permissions: Default::default(),
             theme_compatibility: None,
+            required_capabilities: Vec::new(),
             composer: Some(crate::app_manager::manifest::ComposerConfig {
                 version: "1".to_string(),
                 services: {

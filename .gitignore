@@ -8,6 +8,8 @@ dist/
 *.pvpkg
 installed_apps/
 data/
+tasks/
+codereview/
 
 # Rust build artifacts
 target/
