@@ -28,7 +28,7 @@ Welcome to the **PixieVault Multi-Platform Native Host Specification (v0.1)**. T
 3. **Zero-Trust Encrypted Storage**:
    - Atomic AES-256-GCM encrypted `.pvlt` container with isolated per-app data namespaces.
 4. **Multi-App Lifecycle & Inter-App Telemetry Bus**:
-   - Pluggable guest application workspaces (*Powertrain Studio*, *WealthFlow*, *Track Telemetry*) communicate strictly via direct Rust IPC commands (`window.PixieVaultNative`).
+   - Pluggable guest application workspaces (*Dummy App A*, *Dummy App B*, *Dummy App C*) communicate strictly via direct Rust IPC commands (`window.PixieVaultNative`).
 
 ---
 
@@ -36,22 +36,21 @@ Welcome to the **PixieVault Multi-Platform Native Host Specification (v0.1)**. T
 
 ```json
 {
-  "app_id": "powertrain_analyzer_v1",
-  "name": "Powertrain & Performance Analyzer",
+  "app_id": "dummy_simulation_app",
+  "name": "Dummy Engineering & Performance Analyzer",
   "version": "1.0.0",
   "min_pixievault_version": "0.1.0",
-  "description": "High-fidelity powertrain modeling, torque dynamics, gear sweeps, and inter-app telemetry simulation",
+  "description": "High-fidelity domain modeling, dynamics, sweeps, and inter-app telemetry simulation",
   "entrypoint": "index.html",
-  "update_url": "https://updates.powertrain.local/apps/powertrain_analyzer/manifest.json",
-  "author": "Engineering Simulation Studio",
+  "update_url": "https://updates.example.local/apps/dummy_simulation/manifest.json",
+  "author": "Pixie Technology",
   "permissions": {
     "requested_read": [
-      "engineBhpPeak",
-      "effectiveCurbWeight",
-      "finalDriveRatio",
+      "metricOutputPeak",
+      "effectiveWeight",
+      "operationalRatio",
       "totalBuildCostUsd",
-      "bestLapTimeSec",
-      "acForceFeedbackGain"
+      "bestCycleTimeSec"
     ],
     "requested_write": []
   },
@@ -71,19 +70,19 @@ All communication between guest app modules and the Rust host occurs through `wi
 
 ```javascript
 // 1. Load encrypted app state
-const state = await PixieVaultNative.loadAppData("powertrain_analyzer_v1");
+const state = await PixieVaultNative.loadAppData("dummy_simulation_app");
 
 // 2. Persist updated app state
-await PixieVaultNative.saveAppData({ bhp: 505, torque: 470 }, "powertrain_analyzer_v1");
+await PixieVaultNative.saveAppData({ metricA: 500, metricB: 450 }, "dummy_simulation_app");
 
 // 3. Register public metrics for adjacent apps
 PixieVaultNative.registerDataExporter(() => ({
-  engineBhpPeak: 505,
-  finalDriveRatio: 3.42
+  metricOutputPeak: 500,
+  operationalRatio: 3.42
 }));
 
 // 4. Query telemetry from another app
-const bestLap = await PixieVaultNative.requestCrossAppData("track_telemetry_pro", "bestLapTimeSec", "powertrain_analyzer_v1");
+const bestCycle = await PixieVaultNative.requestCrossAppData("dummy_telemetry_app", "bestCycleTimeSec", "dummy_simulation_app");
 ```
 
 ---

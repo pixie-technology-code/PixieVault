@@ -16,7 +16,7 @@ Welcome to the **PixieVault Application Ecosystem Specification**. This document
 
 ## 2. Pluggable Guest App Modules
 
-Applications inside PixieVault (*Powertrain Studio*, *WealthFlow*, *Track Telemetry*) are pure domain modules running inside the native host shell:
+Applications inside PixieVault (*Dummy Finance App*, *Dummy IoT Monitor*, *Dummy Analytics Studio*) are pure domain modules running inside the native host shell:
 - No web browser dependencies.
 - No faux navigation menus or fake login screens.
 - Zero-trust encrypted persistence strictly through `window.PixieVaultNative`.
@@ -30,16 +30,16 @@ Every app package imported into PixieVault must contain a `manifest.json` file i
 
 ```json
 {
-  "app_id": "wealthflow_beta",
-  "name": "WealthFlow Retirement Planner",
-  "version": "1.4.0",
+  "app_id": "dummy_planner_app",
+  "name": "Dummy Planner Application",
+  "version": "1.0.0",
   "min_pixievault_version": "0.1.0",
-  "description": "High-fidelity retirement income projections and portfolio analysis",
+  "description": "High-fidelity domain modeling and local offline analysis",
   "entrypoint": "index.html",
-  "update_url": "https://updates.finance.local/apps/wealthflow/manifest.json",
-  "author": "William Hart",
+  "update_url": "https://updates.example.local/apps/dummy_planner/manifest.json",
+  "author": "Pixie Technology",
   "permissions": {
-    "requested_read": ["engineBhpPeak", "totalBuildCostBudget", "netWorth"],
+    "requested_read": ["metricA", "metricB", "metricC"],
     "requested_write": []
   },
   "theme_compatibility": {
@@ -64,13 +64,13 @@ PixieVault/
 │   ├── FlatpakManifest.json          # Linux Flatpak specification
 │   └── icons/                        # Cross-platform icons (.ico, .icns, .png)
 ├── apps/                             # Installed Guest Application Workspaces
-│   ├── shell/                        # Host Shell & Lock Screen Interface
-│   ├── powertrain_analyzer/          # Domain App: Powertrain Studio
-│   ├── wealthflow/                   # Domain App: WealthFlow Planner
-│   └── track_telemetry/              # Domain App: Track Telemetry Pro
+│   ├── app_alpha/                    # Domain App: Alpha Studio
+│   ├── app_beta/                     # Domain App: Beta Planner
+│   └── app_gamma/                    # Domain App: Gamma Monitor
 ├── shared/                           # Shared IPC Bridge & Tokens
 │   ├── wrapper-bridge.js             # Native IPC bridge
 │   └── tokens.css                    # Unified design tokens
+├── host/                             # Host Shell & Dashboard Interface
 └── scripts/                          # Packaging Scripts
     ├── build-windows.ps1             # Windows .exe & NSIS builder
     ├── build-linux.sh                # Linux AppImage, Flatpak, and .deb builder

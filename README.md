@@ -95,15 +95,15 @@ Applications declare their identity, entrypoint, permissions, and optional micro
 
 ```json
 {
-  "app_id": "mikrotik_fleet_mgr",
-  "name": "MikroTik Fleet Manager",
+  "app_id": "sample_service_app",
+  "name": "Sample Microservice Application",
   "version": "1.0.0",
-  "description": "Autonomous RouterOS fleet management and backup engine",
+  "description": "Autonomous local backend and modern web frontend orchestration",
   "entrypoint": "http://127.0.0.1:{{services.backend.port}}/",
   "presentation": {
     "icon": "assets/app-icon.svg",
     "accent": "#6366f1",
-    "category": "Infrastructure"
+    "category": "Utilities"
   },
   "permissions": {
     "network": true,

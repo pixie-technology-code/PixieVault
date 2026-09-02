@@ -34,13 +34,13 @@ my_app_name/
 
 ```json
 {
-  "app_id": "mikrotik_fleet_mgr",
-  "name": "MikroTik Fleet Manager",
+  "app_id": "sample_dashboard_app",
+  "name": "Sample Dashboard Application",
   "version": "1.0.0",
   "min_pixievault_version": "0.1.0",
-  "description": "RouterOS device inventory, YAML configuration generator, and fleet telemetry",
+  "description": "Interactive local telemetry, configuration generator, and metrics viewer",
   "entrypoint": "index.html",
-  "author": "William Hart",
+  "author": "Pixie Technology",
   "permissions": {
     "requested_read": ["*:*"],
     "requested_write": []
@@ -59,7 +59,7 @@ my_app_name/
 ## 4. Packaging Categories & Patterns
 
 ### Pattern A: Static HTML / JavaScript Single Page Apps
-*Best for: Dashboards, calculators, dyno studios, financial models, React/Vue/Svelte SPAs.*
+*Best for: Dashboards, calculators, simulators, financial models, React/Vue/Svelte SPAs.*
 
 - **Zero-Touch Integration**:
   1. Drop the built web assets (`index.html`, `bundle.js`, `style.css`) into a directory inside `apps/` (or package into `.pvpkg`).
@@ -69,7 +69,7 @@ my_app_name/
 ---
 
 ### Pattern B: Python / Backend Web Tools (e.g. Flask / FastAPI)
-*Best for: Python scripts with embedded HTML templates (like `MikrotikFleetMgr/automation/asset-web-ui.py`).*
+*Best for: Python scripts with embedded HTML templates or local microservices (like `my_tool/automation/web_ui.py`).*
 
 There are two non-invasive approaches to package Python-driven tools:
 
@@ -82,7 +82,7 @@ There are two non-invasive approaches to package Python-driven tools:
   - Exports standard YAML / JSON configurations on demand.
 
 #### Approach 2: Native Sidecar Process
-- **Concept**: The Rust host wrapper executes `python3 automation/asset-web-ui.py` as a managed background child process and mounts the webview to the local loopback socket.
+- **Concept**: The Rust host wrapper executes `python3 automation/web_ui.py` as a managed background child process and mounts the webview to the local loopback socket.
 - **Advantages**: Runs existing server-side Python libraries without refactoring.
 
 ---
@@ -98,7 +98,7 @@ const state = await window.PixieVaultNative.loadAppData("my_app_id");
 
 // Save state into encrypted vault
 await window.PixieVaultNative.saveAppData({
-  devices: myDeviceList,
+  items: myItemList,
   lastUpdated: Date.now()
 }, "my_app_id");
 ```
@@ -115,9 +115,9 @@ Apps can share real-time metrics with other installed apps:
 ### 1. Exporting Metrics to the Bus:
 ```javascript
 window.PixieVaultNative.registerDataExporter(() => ({
-  totalDevices: deviceList.length,
-  onlineCount: deviceList.filter(d => d.status === "online").length,
-  gatewayIp: "192.168.88.1"
+  totalItems: itemList.length,
+  activeCount: itemList.filter(d => d.status === "active").length,
+  hostId: "node-01"
 }));
 ```
 
@@ -125,8 +125,8 @@ window.PixieVaultNative.registerDataExporter(() => ({
 ```javascript
 // Query metric from another installed workspace
 const val = await window.PixieVaultNative.requestCrossAppData(
-  "powertrain_analyzer_v1",
-  "engineBhpPeak",
+  "sample_analytics_v1",
+  "activeItemCount",
   "my_app_id"
 );
 ```
@@ -142,12 +142,12 @@ You can package any application folder into a `.pvpkg` archive using the bundled
 node scripts/package-app.js ./path/to/my_app
 
 # Custom metadata packaging
-node scripts/package-app.js ./MikrotikFleetMgr \
-  --name "MikroTik Fleet Manager" \
-  --id "mikrotik_fleet_mgr" \
+node scripts/package-app.js ./my_app \
+  --name "Sample Application" \
+  --id "sample_app" \
   --version "1.0.0" \
   --entrypoint "index.html" \
-  --output "./mikrotik_fleet.pvpkg"
+  --output "./sample_app.pvpkg"
 ```
 
 The resulting `.pvpkg` file can be:
