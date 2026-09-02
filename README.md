@@ -89,6 +89,108 @@ flowchart TB
 
 ---
 
+## 🤖 Ingesting GitHub Applications with AI (LLM Migration Playbook)
+
+PixieVault is designed from the ground up for **zero-source-modification ingestion** of open source web applications, dashboards, dev tools, and multi-tier microservices.
+
+By pairing an LLM coding assistant (such as **Antigravity**, **Claude**, **ChatGPT**, **Cursor**, or **GitHub Copilot**) with our standardized migration templates in [`docs/`](docs/), you can assess, adapt, and package any GitHub repository into an air-gapped, zero-trust PixieVault `.pvpkg` application in minutes.
+
+```mermaid
+flowchart LR
+    GH["🐙 Target GitHub Repo<br/>(React / Vue / Flask / FastAPI)"] --> Step1["1️⃣ Pre-Migration Audit<br/>(docs/PRE_MIGRATION_PROMPT.md)"]
+    Step1 --> Verdict{"Verdict?"}
+    Verdict -->|"GO / CONDITIONAL_GO"| Step2["2️⃣ Generate Manifest & Sidecars<br/>(manifest.json + VaultComposer)"]
+    Verdict -->|"NO_GO_HOST_GAP"| HostGap["Identify Generic Host Feature"]
+    Step2 --> Step3["3️⃣ Virtualize Storage & Bus<br/>(wrapper-bridge.js)"]
+    Step3 --> Step4["4️⃣ Build & Verify .pvpkg<br/>(./test-all.sh)"]
+    Step4 --> PV["💎 Air-Gapped Secure App<br/>(PixieVault Host)"]
+```
+
+### 🛠️ Step-by-Step AI Ingestion Workflow
+
+#### Step 1: Run the Pre-Migration Assessment Gate
+Before modifying any code or copying assets, point your LLM at the target repository using our read-only compatibility gate prompt in [`docs/PRE_MIGRATION_PROMPT.md`](docs/PRE_MIGRATION_PROMPT.md).
+
+**Copy & Paste this prompt into your LLM:**
+
+> ```markdown
+> You are assessing an existing application for faithful migration into PixieVault. 
+> Do not edit the source application or PixieVault during this assessment.
+> 
+> ## Inputs
+> - Source repository: https://github.com/<owner>/<target-repo>
+> - Source revision / commit: <FULL_COMMIT_SHA_OR_TAG>
+> - PixieVault repository: https://github.com/pixie-technology-code/PixieVault
+> - Required targets: Windows, Linux, macOS
+> - Operating mode: 100% Offline / Air-Gapped
+> 
+> Evaluate the process topology, build/supply-chain requirements, persistence lifecycle, 
+> external boundaries, and rendering assumptions against PixieVault's implemented contract 
+> as specified in docs/PRE_MIGRATION_PROMPT.md.
+> 
+> Return the standardized Capability Matrix, Storage Map, and Verdict (GO / CONDITIONAL_GO / NO_GO).
+> ```
+
+*The assessment will verify whether the app is pure static, single-sidecar, or multi-process, and produce a pass/fail capability matrix.* (See [`docs/PRE_MIGRATION_SAMPLE_ASSESSMENT.md`](docs/PRE_MIGRATION_SAMPLE_ASSESSMENT.md) for a complete example).
+
+---
+
+#### Step 2: Generate the PixieVault Manifest (`manifest.json`)
+Once the assessment returns `GO`, create the guest application directory under `apps/<app_id>/` and generate the declarative `manifest.json`:
+
+1. **For Pure Static SPAs** (React, Vue, Svelte, static HTML/JS):
+   - Place built assets (`index.html`, `dist/`, `assets/`) in `apps/<app_id>/`.
+   - Set `"entrypoint": "index.html"`. PixieVault's embedded loopback server will serve it with strict local CORS and MIME type isolation.
+
+2. **For Python / Node / Binary Microservices**:
+   - Declare the backend process under `composer.services`:
+     ```json
+     "composer": {
+       "version": "1",
+       "services": {
+         "backend": {
+           "command": ["python3", "server.py"],
+           "working_dir": "backend",
+           "port": "auto",
+           "healthcheck": {
+             "endpoint": "/healthz",
+             "interval_ms": 100,
+             "timeout_ms": 10000,
+             "expected_status": 200
+           }
+         }
+       }
+     }
+     ```
+   - Set `"entrypoint": "http://127.0.0.1:{{services.backend.port}}/"`. PixieVault automatically allocates an ephemeral loopback port, verifies the healthcheck, and mounts the viewport.
+
+---
+
+#### Step 3: Wire Storage Virtualization & Telemetry (`wrapper-bridge.js`)
+To enable zero-trust authenticated encryption without altering core application business logic:
+- PixieVault provides a transparent storage virtualization shim (`wrapper-bridge.js`).
+- Include `<script src="wrapper-bridge.js"></script>` in your entrypoint `index.html`.
+- Standard browser `localStorage` and `sessionStorage` calls are automatically intercepted and redirected to the host's **Argon2id + AES-256-GCM** encrypted `.pvlt` database.
+- Use `PixieVaultNative.bus.publish(topic, payload)` to publish metrics to the Inter-App Telemetry Bus.
+
+---
+
+#### Step 4: Package, Test, and Verify (`.pvpkg`)
+Package the application bundle into a standalone, air-gapped `.pvpkg` archive:
+
+```bash
+# Package the application
+cargo run --bin package_app -- apps/<app_id> dist/<app_id>.pvpkg
+
+# Run the 4-tier verification suite across all test gates
+./test-all.sh       # Linux / macOS
+.\test-all.ps1      # Windows
+```
+
+For advanced multi-tier microservice patterns, refer to the full [Application Migration Playbook](docs/APP_MIGRATION_PLAYBOOK.md).
+
+---
+
 ## 📋 Application Manifest Specification
 
 Applications declare their identity, entrypoint, permissions, and optional microservices via a root `manifest.json`:
