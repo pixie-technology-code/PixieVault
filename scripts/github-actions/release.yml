@@ -1,19 +1,55 @@
-name: Release PixieVault
+name: Auto-Version & Release
 
 on:
   push:
+    branches:
+      - main
+      - master
     tags:
       - 'v*'
-    branches:
-      - master
-      - main
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  release:
+  tag-check:
+    name: Auto-Tag Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+      tag_name: ${{ steps.get_version.outputs.tag_name }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract Version from tauri.conf.json
+        id: get_version
+        run: |
+          VERSION=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          TAG_NAME="v$VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "Detected application version: $VERSION (Tag: $TAG_NAME)"
+
+      - name: Create Git Tag if missing
+        run: |
+          TAG="${{ steps.get_version.outputs.tag_name }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists on remote."
+          else
+            echo "Creating and pushing tag $TAG..."
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git tag -a "$TAG" -m "Automated release $TAG"
+            git push origin "$TAG"
+          fi
+
+  build-and-release:
+    name: Build & Release (${{ matrix.platform }})
+    needs: tag-check
     strategy:
       fail-fast: false
       matrix:
@@ -44,7 +80,7 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
 
-      - name: Install Linux dependencies
+      - name: Install Linux system dependencies
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
@@ -54,27 +90,28 @@ jobs:
         run: |
           node scripts/sync-bridge.js
 
-      - name: Build Tauri Application
+      - name: Build Tauri Desktop Application & Publish Release
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'PixieVault Host Runtime ${{ github.ref_name }}'
+          tagName: ${{ needs.tag-check.outputs.tag_name }}
+          releaseName: 'PixieVault Host Runtime ${{ needs.tag-check.outputs.tag_name }}'
           releaseBody: |
-            ## PixieVault Host Runtime Release
+            ## PixieVault Host Runtime Release (${{ needs.tag-check.outputs.tag_name }})
             
             Zero-Trust, Air-Gapped Desktop Application Host & Micro-Orchestrator.
             
-            ### Included Assets:
-            - **Windows**: `.msi` Installer & Portable `.exe`
-            - **Linux**: `.AppImage` & `.deb` Package
-            - **macOS**: `.dmg` Disk Image
+            ### Included Multi-Platform Assets:
+            - **Windows**: `.msi` Installer & Standalone `.exe`
+            - **Linux**: Universal `.AppImage` & Debian `.deb`
+            - **macOS**: Apple Disk Image `.dmg`
             
-            ### Integrity & Security:
+            ### Security & Architecture:
             - Argon2id Master Key Derivation
-            - Authenticated AES-256-GCM Vault Containers
-            - Loopback Namespace / Bubblewrap Sandboxing
+            - Authenticated AES-256-GCM Encrypted Storage (`.pvlt`)
+            - Ephemeral Loopback HTTP Micro-Orchestration (`VaultComposer`)
+            - Zero-Trust Inter-App Telemetry Bus
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
