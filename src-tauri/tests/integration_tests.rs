@@ -32,7 +32,7 @@ fn test_session_lifecycle_and_zeroize() {
     assert!(!session.is_unlocked());
 
     let key = MasterKey([0xFF; 32]);
-    session.unlock(key);
+    session.unlock(key, false);
     assert_eq!(session.status, AuthStatus::Unlocked);
     assert!(session.is_unlocked());
     assert!(session.unlocked_at.is_some());

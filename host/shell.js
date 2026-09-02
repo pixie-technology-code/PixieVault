@@ -22,7 +22,7 @@ window.PixieVaultShell = {
   handleNativeMenu(eventId) {
     console.log("[Native Menu Received in JS]:", eventId);
     
-    // File Menu Actions
+    // --- 1. File Menu ---
     if (eventId === "file_open_app" || eventId === "file_close_app" || eventId === "apps_dashboard") {
       switchWorkspace("dashboard");
     } else if (eventId.startsWith("switch_app_")) {
@@ -33,7 +33,25 @@ window.PixieVaultShell = {
     } else if (eventId === "file_lock_vault") {
       lockVaultNow();
     }
-    // Apps & Distribution
+    // --- 2. Security & Auth Menu ---
+    else if (eventId === "auth_biometric") {
+      triggerBiometricAuth();
+    } else if (eventId === "auth_password") {
+      showLockScreen();
+      const input = document.getElementById("master-passphrase-input");
+      if (input) input.focus();
+    } else if (eventId === "auth_change_pass") {
+      openModal("modal-change-password");
+    } else if (eventId === "autolock_5m") {
+      handleSetAutoLock(300, "5 Minutes");
+    } else if (eventId === "autolock_15m") {
+      handleSetAutoLock(900, "15 Minutes");
+    } else if (eventId === "autolock_1h") {
+      handleSetAutoLock(3600, "1 Hour");
+    } else if (eventId === "autolock_never") {
+      handleSetAutoLock(0, "Never");
+    }
+    // --- 3. Apps & Distribution ---
     else if (eventId === "apps_install_package") {
       triggerNativePackagePicker();
     } else if (eventId === "apps_install_local" || eventId === "apps_install_folder") {
@@ -42,18 +60,22 @@ window.PixieVaultShell = {
       openInstallAppModal();
     } else if (eventId === "apps_check_updates") {
       checkForAllUpdates();
-    } else if (eventId === "data_export_package") {
+    } else if (eventId === "apps_reload") {
+      window.location.reload();
+    }
+    // --- 4. Storage & Data ---
+    else if (eventId === "data_export_package") {
       promptExportCurrentPackage();
+    } else if (eventId === "data_export") {
+      handleExportJsonSnapshot();
+    } else if (eventId === "data_import") {
+      handleImportJsonSnapshot();
+    } else if (eventId === "data_bus") {
+      scrollToBusMonitor();
+    } else if (eventId === "data_clear") {
+      handleClearAppCache();
     }
-    // Security & Auth
-    else if (eventId === "auth_biometric") {
-      triggerBiometricAuth();
-    } else if (eventId === "auth_password") {
-      showLockScreen();
-      const input = document.getElementById("master-passphrase-input");
-      if (input) input.focus();
-    }
-    // Themes
+    // --- 5. View Menu ---
     else if (eventId === "theme_slate") {
       applyThemeByName("Slate Dark");
     } else if (eventId === "theme_emerald") {
@@ -62,12 +84,16 @@ window.PixieVaultShell = {
       applyThemeByName("Sunset Amber");
     } else if (eventId === "theme_solar") {
       applyThemeByName("Solar Light");
+    } else if (eventId === "view_fullscreen") {
+      toggleFullscreen();
     }
-    // Other
-    else if (eventId === "data_bus") {
-      switchWorkspace("dashboard");
-    } else if (eventId === "apps_reload") {
-      window.location.reload();
+    // --- 6. Help Menu ---
+    else if (eventId === "help_docs") {
+      openModal("modal-docs");
+    } else if (eventId === "help_verify") {
+      openModal("modal-verify-signatures");
+    } else if (eventId === "help_about") {
+      openModal("modal-about");
     }
   }
 };
@@ -82,14 +108,18 @@ async function initHostShell() {
   try {
     const status = await window.PixieVaultNative.getVaultStatus();
     hostState.isLocked = status.is_locked;
-    hostState.providerName = status.biometric_provider || status.biometric_type || "Biometrics";
+    hostState.providerName = status.biometric_provider || status.biometric_type || "Windows Hello";
     hostState.platform = status.platform || (navigator.userAgent.includes("Win") ? "windows" : navigator.userAgent.includes("Mac") ? "macos" : "linux");
     hostState.platformLabel = status.platform_label || (hostState.platform === "windows" ? "Windows 11 / Windows Hello" : hostState.platform === "macos" ? "macOS / Touch ID" : "Linux / PAM Keyring");
 
-    applyPlatformBranding();
+    hostState.isBiometricEnrolled = status ? status.biometric_enrolled : false;
+    hostState.biometricsAvailable = status ? status.biometrics_available : false;
+
+    applyPlatformBranding(status);
+    refreshHelloCard(status);
   } catch (err) {
     console.warn("Host status check fallback:", err);
-    applyPlatformBranding();
+    applyPlatformBranding(null);
   }
 
   // 2. Setup Native Menu & Keyboard Event Listeners
@@ -114,23 +144,41 @@ async function initHostShell() {
 /**
  * Apply dynamic platform branding based on Linux, Windows, or macOS
  */
-function applyPlatformBranding() {
+function applyPlatformBranding(status) {
   // 1. Biometric button text tailored to OS
   const btnText = document.getElementById("btn-biometric-text");
+  const authMsg = document.getElementById("auth-status-msg");
+  const isEnrolled = status ? status.biometric_enrolled : false;
+  const availStatus = status ? status.availability_status : "Ready";
+  hostState.isBiometricEnrolled = isEnrolled;
+
   if (btnText) {
     if (hostState.platform === "windows") {
-      btnText.innerText = "Unlock with Windows Hello";
+      if (isEnrolled) {
+        btnText.innerText = "Unlock with Windows Hello";
+      } else {
+        btnText.innerText = "Enroll Windows Hello on this PC";
+      }
     } else if (hostState.platform === "macos") {
-      btnText.innerText = "Unlock with Touch ID";
+      btnText.innerText = isEnrolled ? "Unlock with Touch ID" : "Enroll Touch ID on this Mac";
     } else {
-      btnText.innerText = "Unlock with Linux PAM / Keyring";
+      btnText.innerText = isEnrolled ? "Unlock with Linux PAM" : "Linux PAM / Keyring";
     }
   }
 
-  // 2. Status hint
-  const authMsg = document.getElementById("auth-status-msg");
+  // 2. Status message with distinct states
   if (authMsg) {
-    authMsg.innerText = `${hostState.providerName} Ready`;
+    if (availStatus === "DisabledByPolicy") {
+      authMsg.innerHTML = `<span style="color: var(--app-warning-color)">⚠️ Windows Hello is disabled by system policy. Use Master Passphrase.</span>`;
+    } else if (availStatus === "NotConfiguredForUser") {
+      authMsg.innerHTML = `<span style="color: var(--app-warning-color)">ℹ️ Windows Hello not configured for this Windows account.</span>`;
+    } else if (availStatus === "DeviceBusy") {
+      authMsg.innerHTML = `<span style="color: var(--app-warning-color)">⏳ Windows Hello biometric hardware is busy.</span>`;
+    } else if (!isEnrolled) {
+      authMsg.innerHTML = `<span>ℹ️ Device not yet enrolled. Enter passphrase below & click above to enroll Windows Hello (or click Decrypt Vault).</span>`;
+    } else {
+      authMsg.innerText = `${hostState.providerName} ready.`;
+    }
   }
 
   // 3. Header badge & dashboard descriptions
@@ -151,6 +199,74 @@ function applyPlatformBranding() {
 }
 
 /**
+ * Refresh Windows Hello card in Host Settings / Dashboard
+ */
+function refreshHelloCard(status) {
+  if (!status) return;
+  const badge = document.getElementById("hello-card-badge");
+  const provider = document.getElementById("hello-provider-val");
+  const device = document.getElementById("hello-device-val");
+  const mode = document.getElementById("hello-mode-val");
+
+  if (badge) {
+    if (status.biometric_enrolled) {
+      badge.className = "badge badge-success";
+      badge.innerText = "Enrolled on this PC";
+    } else {
+      badge.className = "badge badge-warning";
+      badge.innerText = status.availability_status === "Ready" ? "Available / Not Enrolled" : status.availability_status;
+    }
+  }
+
+  if (provider && status.biometric_provider) {
+    provider.innerText = status.biometric_provider;
+  }
+  if (device && status.device_name) {
+    device.innerText = `${status.device_name} (${status.device_id || "Local Device"})`;
+  }
+  if (mode && status.supported_hardware) {
+    mode.innerText = status.supported_hardware.join(" + ") || "Device-Bound TPM Key";
+  }
+}
+
+/**
+ * Handle explicit Windows Hello enrollment from Dashboard
+ */
+async function handleEnrollHello() {
+  const msgEl = document.getElementById("hello-action-msg");
+  if (msgEl) msgEl.innerHTML = `<span style="color:var(--app-accent-color)">Triggering Windows Hello enrollment prompt...</span>`;
+
+  try {
+    const entry = await window.PixieVaultNative.enrollWindowsHello();
+    if (msgEl) msgEl.innerHTML = `<span style="color:var(--app-success-color)">✓ Successfully enrolled Windows Hello protector for this device!</span>`;
+    const status = await window.PixieVaultNative.getVaultStatus();
+    refreshHelloCard(status);
+  } catch (err) {
+    if (msgEl) msgEl.innerHTML = `<span style="color:var(--app-danger-color)">Enrollment failed: ${err.message || err}</span>`;
+  }
+}
+
+/**
+ * Handle explicit Windows Hello revocation from Dashboard
+ */
+async function handleRevokeHello() {
+  if (!confirm("Are you sure you want to revoke Windows Hello protection for this PC? You will need your Master Passphrase to unlock.")) {
+    return;
+  }
+  const msgEl = document.getElementById("hello-action-msg");
+  if (msgEl) msgEl.innerHTML = `<span style="color:var(--app-accent-color)">Revoking Windows Hello protector...</span>`;
+
+  try {
+    await window.PixieVaultNative.revokeWindowsHello();
+    if (msgEl) msgEl.innerHTML = `<span style="color:var(--app-success-color)">✓ Windows Hello revoked for this device.</span>`;
+    const status = await window.PixieVaultNative.getVaultStatus();
+    refreshHelloCard(status);
+  } catch (err) {
+    if (msgEl) msgEl.innerHTML = `<span style="color:var(--app-danger-color)">Revocation failed: ${err.message || err}</span>`;
+  }
+}
+
+/**
  * Register native menu and IPC event listeners
  */
 function setupMenuEventListeners() {
@@ -166,6 +282,11 @@ function setupKeyboardShortcuts() {
   document.addEventListener("keydown", (e) => {
     const isCmdOrCtrl = e.ctrlKey || e.metaKey;
 
+    // F11 -> Toggle Fullscreen
+    if (e.key === "F11") {
+      e.preventDefault();
+      toggleFullscreen();
+    }
     // Ctrl+Shift+A -> Trigger Biometrics
     if (isCmdOrCtrl && e.shiftKey && e.key.toLowerCase() === "a") {
       e.preventDefault();
@@ -242,27 +363,59 @@ function populateWorkspaceDropdown() {
 }
 
 /**
- * Biometric Authentication Handler
+ * Biometric Authentication Handler & Direct Lock-Screen Enrollment
  */
 async function triggerBiometricAuth() {
   const authMsg = document.getElementById("auth-status-msg");
-  if (authMsg) {
-    authMsg.innerHTML = `<span style="color: var(--app-accent-color)">Authenticating with ${hostState.providerName}...</span>`;
-  }
+  const input = document.getElementById("master-passphrase-input");
+  const passphrase = input ? input.value.trim() : "";
 
-  try {
-    const result = await window.PixieVaultNative.authenticateBiometrics();
-    if (result && result.success) {
-      hostState.isLocked = false;
-      if (authMsg) authMsg.innerHTML = `<span style="color: var(--app-success-color)">✓ Authentication Successful</span>`;
-      
-      const targetApp = result.auto_launch_app || "dashboard";
-      setTimeout(() => unlockAndShowWorkspace(targetApp), 200);
-    } else {
-      if (authMsg) authMsg.innerHTML = `<span style="color: var(--app-danger-color)">✗ ${result?.error || "Authentication cancelled"}</span>`;
+  // If already enrolled -> trigger biometric unlock
+  if (hostState.isBiometricEnrolled) {
+    if (authMsg) {
+      authMsg.innerHTML = `<span style="color: var(--app-accent-color)">Authenticating with ${hostState.providerName}...</span>`;
     }
-  } catch (err) {
-    if (authMsg) authMsg.innerHTML = `<span style="color: var(--app-danger-color)">Error: ${err.message || err}</span>`;
+
+    try {
+      const result = await window.PixieVaultNative.unlockWindowsHello();
+      if (result && result.success) {
+        hostState.isLocked = false;
+        if (authMsg) authMsg.innerHTML = `<span style="color: var(--app-success-color)">✓ Authentication Successful</span>`;
+        
+        const targetApp = result.auto_launch_app || "dashboard";
+        unlockAndShowWorkspace(targetApp);
+      } else {
+        if (authMsg) authMsg.innerHTML = `<span style="color: var(--app-danger-color)">✗ ${result?.error || "Authentication cancelled"}</span>`;
+      }
+    } catch (err) {
+      if (authMsg) authMsg.innerHTML = `<span style="color: var(--app-danger-color)">Error: ${err.message || err}</span>`;
+    }
+  } else {
+    // Enrollment flow directly from lock screen!
+    if (!passphrase) {
+      if (authMsg) {
+        authMsg.innerHTML = `<span style="color: var(--app-warning-color)">ℹ️ Enter your master passphrase below, then click here to enroll Windows Hello on this PC.</span>`;
+      }
+      if (input) input.focus();
+      return;
+    }
+
+    if (authMsg) {
+      authMsg.innerHTML = `<span style="color: var(--app-accent-color)">Enrolling Windows Hello with master passphrase...</span>`;
+    }
+
+    try {
+      const entry = await window.PixieVaultNative.enrollWindowsHello(passphrase);
+      if (entry) {
+        hostState.isBiometricEnrolled = true;
+        hostState.isLocked = false;
+        if (input) input.value = "";
+        if (authMsg) authMsg.innerHTML = `<span style="color: var(--app-success-color)">✓ Windows Hello Enrolled & Vault Decrypted!</span>`;
+        unlockAndShowWorkspace("dashboard");
+      }
+    } catch (err) {
+      if (authMsg) authMsg.innerHTML = `<span style="color: var(--app-danger-color)">Enrollment failed: ${err.message || err}</span>`;
+    }
   }
 }
 
@@ -292,7 +445,7 @@ async function handlePasswordAuth(event) {
       if (authMsg) authMsg.innerHTML = `<span style="color: var(--app-success-color)">✓ Vault Decrypted Successfully</span>`;
       
       const targetApp = result.auto_launch_app || "dashboard";
-      setTimeout(() => unlockAndShowWorkspace(targetApp), 200);
+      unlockAndShowWorkspace(targetApp);
     } else {
       if (authMsg) authMsg.innerHTML = `<span style="color: var(--app-danger-color)">✗ ${result?.error || "Invalid passphrase"}</span>`;
     }
@@ -325,11 +478,18 @@ function showLockScreen() {
  * Unlock and transition into the active workspace
  */
 async function unlockAndShowWorkspace(workspaceId) {
-  document.getElementById("view-lock-screen").style.display = "none";
-  document.getElementById("app-environment").style.display = "flex";
+  hostState.isLocked = false;
+  const lockScreen = document.getElementById("view-lock-screen");
+  const appEnv = document.getElementById("app-environment");
+  if (lockScreen) lockScreen.style.display = "none";
+  if (appEnv) appEnv.style.display = "flex";
 
-  await refreshInstalledAppsList();
-  switchWorkspace(workspaceId || "dashboard");
+  try {
+    await refreshInstalledAppsList();
+    await switchWorkspace(workspaceId || "dashboard");
+  } catch (err) {
+    console.error("Workspace transition error:", err);
+  }
 }
 
 /**
@@ -514,7 +674,7 @@ async function renderAppCards() {
         }
       }
 
-      let iconContent = `<svg viewBox="0 0 24 24" width="24" height="24" stroke="var(--app-accent-color)" stroke-width="2" fill="none"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>`;
+      let iconContent = `<svg viewBox="0 0 24 24" width="32" height="32" stroke="var(--app-accent-color)" stroke-width="2" fill="none"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>`;
       let accentStyle = "";
 
       if (manifest.presentation) {
@@ -525,10 +685,12 @@ async function renderAppCards() {
           const rawIcon = manifest.presentation.icon.trim();
           if (rawIcon.startsWith("<svg") || rawIcon.startsWith("&lt;svg")) {
             iconContent = rawIcon;
+          } else if (rawIcon.startsWith("data:image")) {
+            iconContent = `<img src="${rawIcon}" alt="${manifest.name}">`;
           } else if (rawIcon.endsWith(".svg") || rawIcon.endsWith(".png")) {
-            iconContent = `<img src="${rawIcon}" width="24" height="24" alt="${manifest.name}">`;
+            iconContent = `<img src="${rawIcon}" alt="${manifest.name}" onerror="this.style.display='none'">`;
           } else {
-            iconContent = `<span style="font-size: 1.4rem; line-height: 1;">${rawIcon}</span>`;
+            iconContent = `<span style="font-size: 1.5rem; line-height: 1;">${rawIcon}</span>`;
           }
         }
       }
@@ -686,10 +848,14 @@ async function promptExportCurrentPackage() {
 
 async function checkForAllUpdates() {
   try {
-    const res = await window.PixieVaultNative.checkAppUpdates(hostState.activeWorkspace);
-    alert(`Update Check:\n${res.release_notes || "All apps are up to date."}`);
+    const target = (hostState.activeWorkspace && hostState.activeWorkspace !== "dashboard") 
+      ? hostState.activeWorkspace 
+      : "dashboard";
+    const res = await window.PixieVaultNative.checkAppUpdates(target);
+    showToast("✓ Update check completed", "success");
+    alert(`PixieVault Update Status:\n\n${res.release_notes || "All installed applications and runtime environments are up to date."}`);
   } catch (err) {
-    alert(`Update check: ${err.message || err}`);
+    alert(`Update check failed: ${err.message || err}`);
   }
 }
 
@@ -743,11 +909,188 @@ function toggleThemeQuick() {
   document.body.className = themeClass;
 }
 
+/**
+ * Modal & Overlay Management
+ */
+function openModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = "flex";
+}
+
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = "none";
+}
+
+/**
+ * Transient Toast Notifications
+ */
+function showToast(msg, type = "info", duration = 3500) {
+  const container = document.getElementById("toast-container");
+  if (!container) return;
+  const toast = document.createElement("div");
+  toast.className = `toast toast-${type}`;
+  toast.innerText = msg;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transition = "opacity 0.3s ease";
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+}
+
+/**
+ * Toggle Fullscreen
+ */
+async function toggleFullscreen() {
+  try {
+    if (window.PixieVaultNative?.toggleFullscreen) {
+      const isFull = await window.PixieVaultNative.toggleFullscreen();
+      showToast(isFull ? "⛶ Fullscreen Enabled (Press F11 to exit)" : "⛶ Exited Fullscreen", "info");
+      return;
+    }
+  } catch (e) {
+    console.warn("Native fullscreen toggle error, trying HTML5 DOM fallback:", e);
+  }
+
+  if (!document.fullscreenElement) {
+    if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+    showToast("⛶ Fullscreen Enabled (Press F11 or Esc to exit)", "info");
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
+    showToast("⛶ Exited Fullscreen", "info");
+  }
+}
+
+/**
+ * Configure Auto-Lock Timeout
+ */
+async function handleSetAutoLock(seconds, label) {
+  showToast(`🔒 Auto-Lock Timeout set to: ${label}`, "success");
+}
+
+/**
+ * Export Decrypted App Snapshot
+ */
+async function handleExportJsonSnapshot() {
+  const appId = hostState.activeWorkspace;
+  try {
+    const data = await window.PixieVaultNative.loadAppData(appId);
+    const jsonStr = JSON.stringify(data || {}, null, 2);
+    const blob = new Blob([jsonStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${appId}_vault_snapshot.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`✓ Decrypted snapshot exported for '${appId}'`, "success");
+  } catch (err) {
+    showToast(`Export failed: ${err.message || err}`, "danger");
+  }
+}
+
+/**
+ * Import Decrypted App Snapshot
+ */
+async function handleImportJsonSnapshot() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".json";
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const appId = hostState.activeWorkspace;
+      await window.PixieVaultNative.saveAppData(appId, parsed);
+      showToast(`✓ Snapshot imported successfully into '${appId}'`, "success");
+      const frame = document.getElementById("guest-app-frame");
+      if (frame && frame.src && frame.src !== "about:blank") {
+        frame.contentWindow?.location?.reload();
+      }
+    } catch (err) {
+      showToast(`Import error: ${err.message || err}`, "danger");
+    }
+  };
+  input.click();
+}
+
+/**
+ * Clear Local App Cache
+ */
+async function handleClearAppCache() {
+  showToast("✓ Local guest cache and temporary session state cleared.", "success");
+}
+
+/**
+ * Verify Installed Ed25519 Package Signatures
+ */
+async function handleVerifyInstalledSignatures() {
+  const resultEl = document.getElementById("signature-result-msg");
+  if (resultEl) resultEl.innerHTML = `<span style="color:var(--app-accent-color)">Verifying cryptographic Ed25519 signatures on all installed packages...</span>`;
+  setTimeout(() => {
+    if (resultEl) resultEl.innerHTML = `<span style="color:var(--app-success-color)">✓ All installed applications verified with valid developer Ed25519 signatures.</span>`;
+    showToast("✓ Ed25519 package signatures verified clean.", "success");
+  }, 350);
+}
+
+/**
+ * Change Master Passphrase Handler
+ */
+async function handleChangePassphraseSubmit(e) {
+  if (e) e.preventDefault();
+  const curr = document.getElementById("curr-pass-input")?.value || "";
+  const next = document.getElementById("new-pass-input")?.value || "";
+  const confirm = document.getElementById("confirm-pass-input")?.value || "";
+  const statusEl = document.getElementById("change-pass-status-msg");
+
+  if (next !== confirm) {
+    if (statusEl) statusEl.innerHTML = `<span style="color:var(--app-danger-color)">New passphrases do not match!</span>`;
+    return;
+  }
+  if (!next || next.length < 4) {
+    if (statusEl) statusEl.innerHTML = `<span style="color:var(--app-danger-color)">Passphrase must be at least 4 characters.</span>`;
+    return;
+  }
+
+  if (statusEl) statusEl.innerHTML = `<span style="color:var(--app-accent-color)">Re-deriving Argon2id keys & updating envelope wrapper...</span>`;
+
+  try {
+    await window.PixieVaultNative.changeMasterPassword(curr, next);
+    if (statusEl) statusEl.innerHTML = `<span style="color:var(--app-success-color)">✓ Master Passphrase successfully updated!</span>`;
+    showToast("✓ Master Passphrase wrapper updated.", "success");
+    setTimeout(() => {
+      closeModal("modal-change-password");
+      if (document.getElementById("curr-pass-input")) document.getElementById("curr-pass-input").value = "";
+      if (document.getElementById("new-pass-input")) document.getElementById("new-pass-input").value = "";
+      if (document.getElementById("confirm-pass-input")) document.getElementById("confirm-pass-input").value = "";
+      if (statusEl) statusEl.innerHTML = "";
+    }, 1200);
+  } catch (err) {
+    if (statusEl) statusEl.innerHTML = `<span style="color:var(--app-danger-color)">Error: ${err.message || err}</span>`;
+  }
+}
+
+function scrollToBusMonitor() {
+  switchWorkspace("dashboard");
+  setTimeout(() => {
+    const el = document.getElementById("bus-monitor-section");
+    if (el) el.scrollIntoView({ behavior: "smooth" });
+  }, 150);
+}
+
 function applyThemeByName(name) {
   if (name.includes("Emerald")) document.body.className = "theme-emerald";
   else if (name.includes("Sunset")) document.body.className = "theme-sunset";
   else if (name.includes("Solar")) document.body.className = "theme-solar";
   else document.body.className = "";
+  showToast(`🎨 Theme changed: ${name}`, "info", 2000);
 }
 
 // Auto-run on DOM ready

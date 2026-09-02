@@ -102,6 +102,7 @@ fn test_core_task_end_to_end_acceptance_workflow() {
     // Step 5: Persist Encrypted Application State in Vault
     println!("\n[5/7] Encrypting & Persisting State to Vault...");
     let master_key = MasterKey([0xFE; 32]);
+    let salt = pixievault_lib::auth::VaultCrypto::generate_salt();
     let mut vault_data = VaultData::default();
     let fleet_state = serde_json::json!({
         "devices": [
@@ -113,9 +114,10 @@ fn test_core_task_end_to_end_acceptance_workflow() {
     });
     vault_data.set_app_state("mikrotik_fleet_mgr", fleet_state.clone());
     storage
-        .save(&vault_data, &master_key)
+        .save(&vault_data, &master_key, &salt, false)
         .expect("Vault persistence must succeed");
     println!("✓ State Encrypted & Saved to {}", test_vault_file.display());
+
 
     // Step 6: Stop Composer Services & Verify Teardown
     println!("\n[6/7] Terminating Composer Services (Zero-Trust Teardown)...");

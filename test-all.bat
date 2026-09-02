@@ -13,6 +13,8 @@ node tests\validate-dist-assets.js
 if %errorlevel% neq 0 goto error
 node tests\run-all-tests.js
 if %errorlevel% neq 0 goto error
+node tests\test-menus.js
+if %errorlevel% neq 0 goto error
 cd src-tauri
 cargo test --test unit_tests -- --nocapture
 if %errorlevel% neq 0 goto error
@@ -22,7 +24,11 @@ echo [TIER 2] Filesystem & Persistence Tests...
 cd src-tauri
 cargo test --test persistence_tests -- --nocapture
 if %errorlevel% neq 0 goto error
+cargo test --test protector_envelope_tests -- --nocapture
+if %errorlevel% neq 0 goto error
 cargo test --test source_and_package_tests -- --nocapture
+if %errorlevel% neq 0 goto error
+cargo test --test menu_tests -- --nocapture
 if %errorlevel% neq 0 goto error
 cd ..
 

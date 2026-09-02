@@ -25,7 +25,10 @@ node tests/validate-dist-assets.js
 echo -e "\n\033[1;33m[1.3] Running Frontend Mock & IPC Bridge Unit Tests...\033[0m"
 node tests/run-all-tests.js
 
-echo -e "\n\033[1;33m[1.4] Running Rust Pure Unit Tests...\033[0m"
+echo -e "\n\033[1;33m[1.4] Running Native Menu Dispatch Tests...\033[0m"
+node tests/test-menus.js
+
+echo -e "\n\033[1;33m[1.5] Running Rust Pure Unit Tests...\033[0m"
 cd "$WORKSPACE_ROOT/src-tauri"
 cargo test --test unit_tests -- --nocapture
 cd "$WORKSPACE_ROOT"
@@ -36,8 +39,14 @@ echo -e "\033[1;33m[2.1] Running Atomic Vault Persistence & Exclusion Tests...\0
 cd "$WORKSPACE_ROOT/src-tauri"
 cargo test --test persistence_tests -- --nocapture
 
-echo -e "\n\033[1;33m[2.2] Running Portable Package & Sourcing Tests...\033[0m"
+echo -e "\n\033[1;33m[2.2] Running Windows Hello & Envelope Protector Tests...\033[0m"
+cargo test --test protector_envelope_tests -- --nocapture
+
+echo -e "\n\033[1;33m[2.3] Running Portable Package & Sourcing Tests...\033[0m"
 cargo test --test source_and_package_tests -- --nocapture
+
+echo -e "\n\033[1;33m[2.4] Running Native Menu Integration Tests...\033[0m"
+cargo test --test menu_tests -- --nocapture
 cd "$WORKSPACE_ROOT"
 
 # ================= TIER 3: Network & Process Integration Tests =================

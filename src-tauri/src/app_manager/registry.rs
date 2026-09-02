@@ -79,7 +79,7 @@ impl AppRegistry {
 
                     let manifest_path = path.join("manifest.json");
                     if manifest_path.exists() {
-                        if let Ok(manifest) = AppManifest::load_from_file(&manifest_path) {
+                        if let Ok(mut manifest) = AppManifest::load_from_file(&manifest_path) {
                             let app_id = manifest.app_id.clone();
                             let source = manifest
                                 .source
@@ -87,6 +87,26 @@ impl AppRegistry {
                                 .unwrap_or_else(|| AppSource::LocalDirectory(path.clone()));
                             let is_composer = manifest.has_composer();
                             let launch_url = manifest.resolve_launch_url(&folder_name, None);
+
+                            // Inline icon file content to prevent webview relative path 404s
+                            if let Some(ref mut pres) = manifest.presentation {
+                                if let Some(ref icon_str) = pres.icon {
+                                    let icon_path = path.join(icon_str);
+                                    if icon_path.exists() {
+                                        if icon_str.ends_with(".svg") {
+                                            if let Ok(svg_text) = fs::read_to_string(&icon_path) {
+                                                pres.icon = Some(svg_text);
+                                            }
+                                        } else if icon_str.ends_with(".png") {
+                                            if let Ok(png_bytes) = fs::read(&icon_path) {
+                                                use base64::prelude::*;
+                                                let b64 = BASE64_STANDARD.encode(&png_bytes);
+                                                pres.icon = Some(format!("data:image/png;base64,{}", b64));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
 
                             apps_map.insert(
                                 app_id,

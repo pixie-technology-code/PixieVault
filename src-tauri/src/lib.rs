@@ -10,8 +10,8 @@ use commands::AppState;
 use menu::HostMenu;
 use std::path::PathBuf;
 use std::sync::{Arc, RwLock};
-use storage::VaultStorage;
-use tauri::Manager;
+use storage::{VaultStorage, WorkspaceManager};
+use tauri::{Emitter, Manager};
 
 pub fn run() {
     tauri::Builder::default()
@@ -54,18 +54,42 @@ pub fn run() {
             let _ = std::fs::create_dir_all(&user_apps_dir);
 
             let registry = AppRegistry::new_with_user_apps(bundled_apps_dir, Some(user_apps_dir));
+            let workspace = WorkspaceManager::new(&app_data_dir);
 
             let app_state = Arc::new(AppState {
                 session: RwLock::new(VaultSession::default()),
                 storage: VaultStorage::new(Some(vault_file)),
+                workspace,
                 registry,
                 bus: InterAppBus::new(),
                 sidecars: app_manager::SidecarManager::new(),
                 vault_data: RwLock::new(None),
+                vault_salt: RwLock::new(None),
                 app_data_root: app_data_dir,
             });
 
-            app.manage(app_state);
+            app.manage(app_state.clone());
+
+            // 3. Spawn background auto-lock supervisor ticker (checks every 5 seconds)
+            let auto_lock_state = app_state.clone();
+            let app_handle_for_lock = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let mut interval = tokio::time::interval(std::time::Duration::from_secs(5));
+                loop {
+                    interval.tick().await;
+                    let should_lock = {
+                        let session = auto_lock_state.session.read().unwrap();
+                        session.is_auto_lock_expired()
+                    };
+
+                    if should_lock {
+                        eprintln!("[PixieVault Host] Inactivity timeout reached. Auto-locking vault...");
+                        commands::lock_vault_internal(&auto_lock_state);
+                        let _ = app_handle_for_lock.emit("pv_vault_autolocked", ());
+                    }
+
+                }
+            });
 
             // Build and attach native menu
             let menu = HostMenu::build(app.handle())?;
@@ -81,8 +105,13 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::pv_get_vault_status,
+            commands::pv_windows_hello_capabilities,
+            commands::pv_windows_hello_enroll,
+            commands::pv_windows_hello_unlock,
+            commands::pv_windows_hello_revoke,
             commands::pv_authenticate_biometric,
             commands::pv_authenticate_password,
+            commands::pv_set_master_passphrase,
             commands::pv_lock_vault,
             commands::pv_list_apps,
             commands::pv_launch_app,
@@ -107,8 +136,10 @@ pub fn run() {
             commands::pv_composer_stop_app,
             commands::pv_composer_get_status,
             commands::pv_provision_app_environment,
-            commands::pv_repair_app_environment
+            commands::pv_repair_app_environment,
+            commands::pv_toggle_fullscreen
         ])
         .run(tauri::generate_context!())
         .expect("error while running PixieVault host application");
 }
+

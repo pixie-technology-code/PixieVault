@@ -192,6 +192,15 @@ impl HostMenu {
     pub fn handle_event<R: Runtime>(app: &AppHandle<R>, event_id: &str) {
         println!("[PixieVault Native Menu Event] Selected: {}", event_id);
 
+        // Native Fullscreen toggle handling directly on OS window
+        if event_id == "view_fullscreen" {
+            for (_label, window) in app.webview_windows() {
+                if let Ok(is_full) = window.is_fullscreen() {
+                    let _ = window.set_fullscreen(!is_full);
+                }
+            }
+        }
+
         // 1. Emit to Tauri event bus
         let _ = app.emit("menu_event", event_id);
 

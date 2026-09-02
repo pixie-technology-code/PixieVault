@@ -30,7 +30,11 @@ Write-Host "`n[1.3] Running Frontend Mock & IPC Bridge Unit Tests..." -Foregroun
 node tests/run-all-tests.js
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-Write-Host "`n[1.4] Running Rust Pure Unit Tests..." -ForegroundColor Yellow
+Write-Host "`n[1.4] Running Native Menu Dispatch Tests..." -ForegroundColor Yellow
+node tests/test-menus.js
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+Write-Host "`n[1.5] Running Rust Pure Unit Tests..." -ForegroundColor Yellow
 Set-Location "$WorkspaceRoot\src-tauri"
 cargo test --test unit_tests -- --nocapture
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -43,8 +47,16 @@ Set-Location "$WorkspaceRoot\src-tauri"
 cargo test --test persistence_tests -- --nocapture
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-Write-Host "`n[2.2] Running Portable Package & Sourcing Tests..." -ForegroundColor Yellow
+Write-Host "`n[2.2] Running Windows Hello & Envelope Protector Tests..." -ForegroundColor Yellow
+cargo test --test protector_envelope_tests -- --nocapture
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+Write-Host "`n[2.3] Running Portable Package & Sourcing Tests..." -ForegroundColor Yellow
 cargo test --test source_and_package_tests -- --nocapture
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+Write-Host "`n[2.4] Running Native Menu Integration Tests..." -ForegroundColor Yellow
+cargo test --test menu_tests -- --nocapture
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 Set-Location $WorkspaceRoot
 

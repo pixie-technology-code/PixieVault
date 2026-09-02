@@ -50,3 +50,14 @@
   - **Rule**:
     1. **Folder Picker OS Filter Invariant**: When `pick_folder()` is invoked on Windows or Linux, the operating system file dialog strictly enforces directory navigation and hides all regular files, including `.pvpkg` archives. If a user navigates to `dist/`, the directory appears blank ("No items match your search").
     2. **Dedicated UI & IPC Picker Separation**: Always provide distinct, explicit options and native IPC handlers for **Import `.pvpkg` Package Bundle** (`pick_file()` filtered to `*.pvpkg, *.zip`) and **Mount Unpacked App Folder** (`pick_folder()`). Ensure universal file pickers accept both package archives and `manifest.json` entries.
+
+- **2026-09-01**: Testing Password & Credential Convention ("For testing, please record I'm using the password: MasterPassword").
+  - **Rule**: In all interactive tests, automated test fixtures requiring a default passphrase, and manual test sessions where a configured master password is required, standard test operations use `MasterPassword` (or initial unconfigured blank for first-run tests).
+
+- **2026-09-01**: Windows Hello, CNG Key Storage Providers, and Biometric Consent Verification.
+  - **Rule**:
+    1. **WinRT UserConsentVerifier for Biometrics**: For native Windows 10/11 desktop applications, use Microsoft's official `UserConsentVerifier::RequestVerificationAsync` API in `windows::Security::Credentials::UI` to trigger the interactive Windows Hello biometric/PIN prompt modal.
+    2. **Hardware/TPM-Backed DPAPI Envelope Encryption**: In envelope encryption on Windows, wrap the random 256-bit Vault Master Key using Windows DPAPI (`CryptProtectData` / `CryptUnprotectData` with `CRYPTPROTECT_UI_FORBIDDEN` and vault-scoped entropy `PixieVault::<vault_id>::<device_id>`). This provides hardware/TPM-backed, user-bound key protection that integrates seamlessly with Windows Hello user consent verification.
+    3. **CNG Key Naming Invariant**: In Windows CNG, key names containing forward slashes `/` or backslashes `\` cause Key Storage Providers to interpret the prefix as a Windows Security Identifier (SID) path, returning `0x80070539` (`ERROR_INVALID_SID`). Always sanitize key names to use alphanumeric characters with underscores or hyphens (e.g. `PixieVault_<vault_id>_<device_id>`).
+    4. **`windows-rs` Handle Passing & Imports**: In `windows-rs`, handle types (`NCRYPT_KEY_HANDLE`, `NCRYPT_PROV_HANDLE`) implement `windows_core::Param<NCRYPT_HANDLE>` directly. Never pass `.0` (raw `usize`) into API functions expecting a handle. `LocalFree` and `HLOCAL` reside in `windows::Win32::Foundation`.
+

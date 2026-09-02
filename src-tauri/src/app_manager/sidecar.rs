@@ -427,11 +427,23 @@ impl VaultComposer {
     }
 
     /// Launch all composer services or static file servers defined in an application manifest
+    /// Launch all composer services or static file servers defined in an application manifest
     pub fn start_composer_app(
         &self,
         manifest: &AppManifest,
         app_dir: &Path,
         vault_data_dir: Option<&Path>,
+    ) -> Result<ComposerAppStatus, String> {
+        self.start_composer_app_with_env(manifest, app_dir, vault_data_dir, None)
+    }
+
+    /// Launch composer services with additional in-memory environment variables (e.g. APP_ENCRYPTION_KEY)
+    pub fn start_composer_app_with_env(
+        &self,
+        manifest: &AppManifest,
+        app_dir: &Path,
+        vault_data_dir: Option<&Path>,
+        extra_env: Option<&HashMap<String, String>>,
     ) -> Result<ComposerAppStatus, String> {
         let app_id = &manifest.app_id;
 
@@ -572,6 +584,13 @@ impl VaultComposer {
                             .replace("{{PORT}}", &port.to_string());
                         env_map.insert(k.clone(), resolved_v);
                     }
+
+                    if let Some(extra) = extra_env {
+                        for (k, v) in extra {
+                            env_map.insert(k.clone(), v.clone());
+                        }
+                    }
+
 
                     let runtime = svc_cfg.get_runtime();
                     if runtime.runtime_type == "python" {

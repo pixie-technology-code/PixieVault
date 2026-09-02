@@ -141,16 +141,17 @@
 
         <!-- Vault Container & Security Specs -->
         <div class="card security-card">
-          <div class="card-header">
-            <h3>Storage Container & Security Parameters</h3>
+          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <h3>Storage Container & Envelope Encryption</h3>
+            <span class="badge badge-success">Envelope v3</span>
           </div>
           <div class="security-grid">
             <div class="security-item">
-              <span class="sec-label">Encryption Cipher</span>
-              <span class="sec-val">AES-256-GCM (Authenticated)</span>
+              <span class="sec-label">Payload Cipher</span>
+              <span class="sec-val">AES-256-GCM (Random 256-bit VMK)</span>
             </div>
             <div class="security-item">
-              <span class="sec-label">Key Derivation</span>
+              <span class="sec-label">Password Protector</span>
               <span class="sec-val">Argon2id (64MB, 3 iter, 4 lanes)</span>
             </div>
             <div class="security-item">
@@ -159,9 +160,49 @@
             </div>
             <div class="security-item">
               <span class="sec-label">Host OS & Biometrics</span>
-              <span class="sec-val" id="sec-platform-val">Linux / PAM Keyring</span>
+              <span class="sec-val" id="sec-platform-val">Windows 11 / Windows Hello</span>
             </div>
           </div>
+        </div>
+
+        <!-- Windows Hello & Hardware Protectors Management Card -->
+        <div class="card security-card" style="margin-top:1.25rem;">
+          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="var(--app-accent-color)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+              <h3 id="hello-card-title">Windows Hello / Hardware Protection</h3>
+            </div>
+            <span id="hello-card-badge" class="badge badge-info">Checking...</span>
+          </div>
+          <div class="security-grid">
+            <div class="security-item">
+              <span class="sec-label">Hardware Provider</span>
+              <span class="sec-val" id="hello-provider-val">Microsoft Passport KSP</span>
+            </div>
+            <div class="security-item">
+              <span class="sec-label">Device Identifier</span>
+              <span class="sec-val" id="hello-device-val">Current PC</span>
+            </div>
+            <div class="security-item">
+              <span class="sec-label">Protection Mode</span>
+              <span class="sec-val" id="hello-mode-val">TPM 2.0 / Biometrics (RSA-OAEP)</span>
+            </div>
+            <div class="security-item">
+              <span class="sec-label">Multi-Device Cloud Sync</span>
+              <span class="sec-val">Supported (Independent Device Keys)</span>
+            </div>
+          </div>
+          <div style="margin-top:1rem; display:flex; gap:0.75rem; flex-wrap:wrap;">
+            <button id="btn-enroll-hello" class="btn btn-sm btn-primary" onclick="handleEnrollHello()">
+              Enroll Windows Hello on this Device
+            </button>
+            <button id="btn-revoke-hello" class="btn btn-sm btn-outline" style="color:var(--app-danger-color); border-color:var(--app-danger-color);" onclick="handleRevokeHello()">
+              Revoke Windows Hello on this PC
+            </button>
+          </div>
+          <div id="hello-action-msg" style="font-size:0.8rem; margin-top:0.6rem; color:var(--app-text-muted);"></div>
         </div>
       </section>
 
@@ -257,6 +298,192 @@
       </div>
     </div>
   </div>
+
+  <!-- ================= Modal: About PixieVault Host ================= -->
+  <div id="modal-about" class="modal-backdrop" style="display:none;">
+    <div class="modal-card modal-card-md">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:0.6rem;">
+          <svg viewBox="0 0 24 24" width="26" height="26" stroke="var(--app-accent-color)" stroke-width="2" fill="none">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+          <h3>About PixieVault Host</h3>
+        </div>
+        <button class="modal-close" onclick="closeModal('modal-about')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="text-align:center; padding: 1rem 0 1.5rem;">
+          <h2 style="font-size:1.6rem; font-weight:800; letter-spacing:-0.5px; margin-bottom:0.25rem;">PixieVault</h2>
+          <span class="badge badge-accent" style="font-size:0.82rem;">Version 0.2.0 • Native Desktop Host</span>
+          <p style="color:var(--app-text-muted); font-size:0.85rem; margin-top:0.6rem;">
+            Zero-Trust Encrypted Application Environment & Universal Portable Host
+          </p>
+        </div>
+
+        <div class="security-grid" style="grid-template-columns: 1fr 1fr; margin-bottom:1.25rem;">
+          <div class="security-item">
+            <span class="sec-label">Architecture</span>
+            <span class="sec-val">100% Native Rust Shell (Tauri v2)</span>
+          </div>
+          <div class="security-item">
+            <span class="sec-label">Encryption</span>
+            <span class="sec-val">Envelope v3 (Argon2id + AES-256-GCM)</span>
+          </div>
+          <div class="security-item">
+            <span class="sec-label">Hardware Protection</span>
+            <span class="sec-val" id="about-hardware-val">Windows Hello (TPM 2.0)</span>
+          </div>
+          <div class="security-item">
+            <span class="sec-label">Guest Isolation</span>
+            <span class="sec-val">Encrypted Workspaces & Loopback</span>
+          </div>
+        </div>
+
+        <p style="font-size:0.78rem; color:var(--app-text-muted); text-align:center; border-top:1px solid var(--app-border-color); padding-top:1rem;">
+          © 2026 Pixie Technology. Released under Apache-2.0 / MIT. Zero-Plaintext at Rest.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= Modal: PixieVault Documentation ================= -->
+  <div id="modal-docs" class="modal-backdrop" style="display:none;">
+    <div class="modal-card modal-card-lg">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:0.6rem;">
+          <svg viewBox="0 0 24 24" width="24" height="24" stroke="var(--app-accent-color)" stroke-width="2" fill="none">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          <h3>PixieVault Documentation & Quick Reference</h3>
+        </div>
+        <button class="modal-close" onclick="closeModal('modal-docs')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="docs-section">
+          <h4>⌨️ Global Keyboard Shortcuts</h4>
+          <table class="docs-table">
+            <thead>
+              <tr><th>Shortcut</th><th>Action</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>Ctrl+Shift+A</code></td><td>Windows Hello / Biometrics</td><td>Trigger biometric / PIN unlock or enrollment</td></tr>
+              <tr><td><code>Ctrl+L</code></td><td>Lock Vault</td><td>Immediately locks vault and clears keys from RAM</td></tr>
+              <tr><td><code>Ctrl+S</code></td><td>Save Active Workspace</td><td>Encrypts and syncs active guest state to vault</td></tr>
+              <tr><td><code>Ctrl+E</code></td><td>Export .pvpkg Bundle</td><td>Packages active app into portable air-gapped bundle</td></tr>
+              <tr><td><code>Ctrl+W</code></td><td>Close App</td><td>Closes active viewport and returns to Dashboard</td></tr>
+              <tr><td><code>F5</code></td><td>Reload Application</td><td>Refreshes current guest application viewport</td></tr>
+              <tr><td><code>F11</code></td><td>Toggle Fullscreen</td><td>Switches window in and out of native fullscreen</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="docs-section">
+          <h4>🔒 Envelope Encryption v3 & Multi-Device Sync</h4>
+          <p>
+            PixieVault utilizes envelope encryption. A random 256-bit <strong>Vault Master Key (VMK)</strong> encrypts all application data and sealed workspaces. 
+            The VMK is wrapped independently by:
+          </p>
+          <ul>
+            <li><strong>Universal Argon2id Passphrase Protector:</strong> Allows recovery and multi-device OneDrive synchronization.</li>
+            <li><strong>Device-Bound Windows Hello / TPM Protectors:</strong> Non-exportable hardware-backed keys on each enrolled PC.</li>
+          </ul>
+        </div>
+
+        <div class="docs-section">
+          <h4>📦 Air-Gapped Portable Packages (.pvpkg)</h4>
+          <p>
+            Portable <code>.pvpkg</code> files bundle the application's source code, manifest, icons, requirements, and optionally encrypted user databases into an offline zip bundle. 
+            Use <strong>Storage & Data → Export Portable Package</strong> or <strong>Apps → Import .pvpkg</strong>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= Modal: Ed25519 Package Signatures ================= -->
+  <div id="modal-verify-signatures" class="modal-backdrop" style="display:none;">
+    <div class="modal-card modal-card-md">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:0.6rem;">
+          <svg viewBox="0 0 24 24" width="24" height="24" stroke="var(--app-success-color)" stroke-width="2" fill="none">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+          <h3>Verify Ed25519 Package Signatures</h3>
+        </div>
+        <button class="modal-close" onclick="closeModal('modal-verify-signatures')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--app-text-muted); font-size:0.85rem; margin-bottom:1.25rem;">
+          PixieVault verifies all <code>.pvpkg</code> bundles against developer public keys using Ed25519 cryptographic signatures before runtime mounting.
+        </p>
+
+        <div style="background:var(--app-card-bg-elevated); border:1px solid var(--app-border-color); border-radius:var(--app-radius-md); padding:1rem; margin-bottom:1rem;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem;">
+            <span style="font-size:0.82rem; font-weight:700;">Signature Algorithm:</span>
+            <span style="font-size:0.82rem; color:var(--app-accent-color);">Ed25519 / RFC 8032</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem;">
+            <span style="font-size:0.82rem; font-weight:700;">Hash Pre-Image:</span>
+            <span style="font-size:0.82rem;">SHA-512 Package Digest</span>
+          </div>
+          <div style="display:flex; justify-content:space-between;">
+            <span style="font-size:0.82rem; font-weight:700;">Installed Apps Verification:</span>
+            <span class="badge badge-success" id="signature-verify-status">✓ All 2 Apps Verified Clean</span>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-full" onclick="handleVerifyInstalledSignatures()">Re-Verify All Installed Packages</button>
+        <div id="signature-result-msg" style="margin-top:0.8rem; font-size:0.82rem; text-align:center;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= Modal: Change Master Passphrase ================= -->
+  <div id="modal-change-password" class="modal-backdrop" style="display:none;">
+    <div class="modal-card modal-card-md">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:0.6rem;">
+          <svg viewBox="0 0 24 24" width="24" height="24" stroke="var(--app-accent-color)" stroke-width="2" fill="none">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          <h3>Change Master Passphrase</h3>
+        </div>
+        <button class="modal-close" onclick="closeModal('modal-change-password')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--app-text-muted); font-size:0.85rem; margin-bottom:1.25rem;">
+          Rotating your passphrase derives a new Argon2id wrapper around the Vault Master Key. All hardware protectors and application files remain preserved.
+        </p>
+
+        <form onsubmit="handleChangePassphraseSubmit(event)">
+          <div class="form-group">
+            <label class="form-label" for="curr-pass-input">Current Master Passphrase:</label>
+            <input type="password" id="curr-pass-input" class="form-input" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="new-pass-input">New Master Passphrase:</label>
+            <input type="password" id="new-pass-input" class="form-input" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="confirm-pass-input">Confirm New Passphrase:</label>
+            <input type="password" id="confirm-pass-input" class="form-input" required />
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">Update Master Passphrase Wrapper</button>
+        </form>
+        <div id="change-pass-status-msg" style="margin-top:0.8rem; font-size:0.82rem; text-align:center;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
 
   <script src="shell.js"></script>
 </body>

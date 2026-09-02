@@ -81,10 +81,41 @@
     },
 
     /**
-     * Trigger OS Biometric Authentication (Windows Hello / Touch ID / PAM)
+     * Get Windows Hello / Platform Protector capabilities for current device
      */
-    async authenticateBiometrics() {
-      const res = await invokeTauri("pv_authenticate_biometric");
+    async getWindowsHelloCapabilities() {
+      const res = await invokeTauri("pv_windows_hello_capabilities");
+      if (res !== null) return res;
+      return {
+        is_available: true,
+        provider_name: "Mock Windows Hello Provider",
+        biometric_type: "Windows Hello (Fingerprint / Face / PIN)",
+        is_enrolled: false,
+        availability_status: "Ready",
+        supported_hardware: ["Fingerprint", "PIN", "TPM 2.0"],
+        device_id: "mock-device-id",
+        device_name: "Mock-PC"
+      };
+    },
+
+    /**
+     * Enroll Windows Hello / Platform Protector for this device
+     */
+    async enrollWindowsHello(passphrase = null) {
+      const res = await invokeTauri("pv_windows_hello_enroll", { passphrase });
+      if (res !== null) return res;
+      return {
+        id: "windows-hello-mock",
+        protector_type: "windows-hello-cng",
+        wrapped_master_key_b64: "bW9ja193cmFwcGVkX2tleQ=="
+      };
+    },
+
+    /**
+     * Unlock Vault using Windows Hello / Platform Protector
+     */
+    async unlockWindowsHello() {
+      const res = await invokeTauri("pv_windows_hello_unlock");
       if (res !== null) {
         if (res.success) cachedVaultState.isLocked = false;
         return res;
@@ -95,6 +126,21 @@
         auto_launch_app: null,
         error: null
       };
+    },
+
+    /**
+     * Revoke Windows Hello protector for this device
+     */
+    async revokeWindowsHello() {
+      const res = await invokeTauri("pv_windows_hello_revoke");
+      return res ?? true;
+    },
+
+    /**
+     * Trigger OS Biometric Authentication (Windows Hello / Touch ID / PAM)
+     */
+    async authenticateBiometrics() {
+      return this.unlockWindowsHello();
     },
 
     /**
@@ -121,7 +167,43 @@
       const res = await invokeTauri("pv_lock_vault");
       cachedVaultState.isLocked = true;
       cachedVaultState.activeApp = null;
+      if (typeof window !== "undefined") {
+        delete window.__PIXIEVAULT_APP_DATA__;
+        try {
+          window.localStorage.clear();
+          window.sessionStorage.clear();
+        } catch (e) {}
+      }
       return res ?? true;
+    },
+
+    /**
+     * Setup or update Vault master passphrase
+     */
+    async setMasterPassphrase(passphrase, currentPassphrase = null) {
+      const res = await invokeTauri("pv_set_master_passphrase", {
+        passphrase,
+        currentPassphrase
+      });
+      return res;
+    },
+
+    /**
+     * Listen for automatic vault locking events
+     */
+    onAutoLock(callback) {
+      this.onHostEvent("pv_vault_autolocked", () => {
+        cachedVaultState.isLocked = true;
+        cachedVaultState.activeApp = null;
+        if (typeof window !== "undefined") {
+          delete window.__PIXIEVAULT_APP_DATA__;
+          try {
+            window.localStorage.clear();
+            window.sessionStorage.clear();
+          } catch (e) {}
+        }
+        callback();
+      });
     },
 
     /**
@@ -278,7 +360,7 @@
     /**
      * Check for app updates
      */
-    async checkAppUpdates(appId) {
+    async checkAppUpdates(appId = "dashboard") {
       return await invokeTauri("pv_check_app_updates", { appId });
     },
 
@@ -390,6 +472,21 @@
      */
     async repairAppEnvironment(appId) {
       return await invokeTauri("pv_repair_app_environment", { appId });
+    },
+
+    /**
+     * Toggle OS Native Window Fullscreen
+     */
+    async toggleFullscreen() {
+      const res = await invokeTauri("pv_toggle_fullscreen");
+      if (res !== null) return res;
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen?.();
+        return true;
+      } else {
+        await document.exitFullscreen?.();
+        return false;
+      }
     },
 
     /**

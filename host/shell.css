@@ -571,6 +571,21 @@ kbd {
   justify-content: center;
   border-radius: var(--app-radius-md);
   border: 1px solid var(--app-border-color);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.app-icon svg {
+  width: 36px;
+  height: 36px;
+  display: block;
+}
+
+.app-icon img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  display: block;
 }
 
 .app-name {
@@ -789,5 +804,104 @@ kbd {
 .install-option-card p {
   font-size: 0.8rem;
   color: var(--app-text-muted);
+}
+
+.modal-card-lg {
+  max-width: 720px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.modal-card-md {
+  max-width: 600px;
+}
+
+/* Docs & About Modal formatting */
+.docs-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.85rem;
+}
+
+.docs-table th, .docs-table td {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--app-border-color);
+  text-align: left;
+}
+
+.docs-table th {
+  background: var(--app-card-bg-elevated);
+  color: var(--app-accent-color);
+  font-weight: 700;
+}
+
+.docs-section {
+  margin-bottom: 1.25rem;
+}
+
+.docs-section h4 {
+  color: var(--app-accent-color);
+  font-size: 0.95rem;
+  margin-bottom: 0.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.docs-section p, .docs-section li {
+  font-size: 0.85rem;
+  color: var(--app-text-muted);
+  line-height: 1.5;
+}
+
+.docs-section ul {
+  padding-left: 1.25rem;
+  margin-top: 0.3rem;
+}
+
+/* Toast Notifications */
+.toast-container {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.toast {
+  background: var(--app-card-bg-elevated);
+  border: 1px solid var(--app-accent-color);
+  color: var(--app-text-main);
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--app-radius-md);
+  box-shadow: var(--app-shadow);
+  font-size: 0.88rem;
+  font-weight: 600;
+  animation: slideInUp 0.25s ease-out;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toast.toast-success {
+  border-color: var(--app-success-color);
+}
+
+.toast.toast-warning {
+  border-color: var(--app-warning-color);
+}
+
+.toast.toast-danger {
+  border-color: var(--app-danger-color);
+}
+
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
