@@ -2,6 +2,8 @@
 
 This playbook defines the architecture, storage virtualization, and packaging workflow to bring any web application, dashboard, or developer script into **PixieVault** with **zero modifications to original application source code**.
 
+Before migrating an unfamiliar application, run the read-only compatibility gate in `PRE_MIGRATION_PROMPT.md`. Proceed to `MIGRATION_PROMPT.md` only after the gate returns `GO` or every condition of a `CONDITIONAL_GO` has been met. A `NO_GO_HOST_GAP` should become a generic host capability proposal, never an application-specific branch in trusted host code.
+
 ---
 
 ## 1. PixieVault Application Architecture
