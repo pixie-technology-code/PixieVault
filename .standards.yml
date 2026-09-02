@@ -1,0 +1,16 @@
+# Standards adopted by this project.
+# See: https://github.com/williamhart-az/antigravity-standards
+#
+# Agents: read each standard's agent: instructions from the registry
+# and follow them for this project.
+
+adopted:
+  - name: workflows
+    version: 1.0.0
+    applied: 2026-09-01
+  - name: memory-palace
+    version: 1.0.0
+    applied: 2026-09-01
+  - name: agent-behavior
+    version: 1.0.0
+    applied: 2026-09-01

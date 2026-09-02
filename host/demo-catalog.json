@@ -1,0 +1,85 @@
+{
+  "apps": [
+    {
+      "manifest": {
+        "app_id": "mikrotik_fleet_mgr",
+        "name": "MikroTik Fleet Manager",
+        "version": "1.0.0",
+        "description": "Automated RouterOS inventory, MAC-Telnet discovery, firmware management, and config drift tracking",
+        "entrypoint": "http://127.0.0.1:{{services.backend.port}}/",
+        "presentation": {
+          "icon": "assets/app-icon.svg",
+          "accent": "#6366f1",
+          "category": "networking"
+        },
+        "composer": {
+          "version": "1",
+          "services": {
+            "backend": {
+              "command": ["python3", "app.py"],
+              "working_dir": "backend",
+              "runtime": {
+                "type": "python",
+                "requirements": "requirements.txt",
+                "fingerprint_files": ["requirements.txt"]
+              },
+              "port": "auto",
+              "environment": {
+                "PORT": "{{port}}",
+                "HOST": "127.0.0.1"
+              },
+              "healthcheck": {
+                "endpoint": "/healthz",
+                "interval_ms": 250,
+                "timeout_ms": 30000,
+                "expected_status": 200
+              },
+              "sandbox": {
+                "enabled": true,
+                "writable_dirs": ["."],
+                "isolate_network_loopback": true
+              }
+            }
+          }
+        }
+      },
+      "path": "../apps/mikrotik_fleet",
+      "launch_url": "http://127.0.0.1:45000/",
+      "is_active": false,
+      "is_composer": true,
+      "source": { "type": "LocalDirectory", "details": "../apps/mikrotik_fleet" }
+    },
+    {
+      "manifest": {
+        "app_id": "cairn_dead_reckoning",
+        "name": "Cairn: Dead Reckoning",
+        "version": "3.0.0",
+        "description": "Autonomous Multi-Decade Portfolio Navigation & Wealth Architecture Engine",
+        "entrypoint": "index.html",
+        "presentation": {
+          "icon": "assets/app-icon.svg",
+          "accent": "#0284c7",
+          "category": "finance"
+        }
+      },
+      "path": "../cairn_dead_reckoning",
+      "launch_url": "../cairn_dead_reckoning/index.html",
+      "is_active": false,
+      "is_composer": false,
+      "source": { "type": "LocalDirectory", "details": "../cairn_dead_reckoning" }
+    }
+  ],
+  "metrics": {
+    "mikrotik_fleet_mgr": {
+      "onlineDevices": 12,
+      "totalDevices": 14,
+      "firmwareUpToDatePct": 92.5
+    },
+    "cairn_dead_reckoning": {
+      "netWorth": 1850000,
+      "portfolioBalance": 1420000,
+      "totalBuildCostBudget": 35000,
+      "spendingLivingFloor": 120000
+    }
+  }
+}

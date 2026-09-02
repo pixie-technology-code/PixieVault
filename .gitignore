@@ -1,0 +1,48 @@
+# PixieVault Git Ignore Rules
+
+# Guest Applications & Packages (Proprietary / User-Mounted Apps)
+apps/
+src-tauri/apps/
+MikrotikFleetMgr/
+dist/
+*.pvpkg
+installed_apps/
+data/
+
+# Rust build artifacts
+target/
+src-tauri/target/
+Cargo.lock
+
+# Python virtual environments & bytecode
+.venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Mutable runtime data & secrets
+.secrets/
+*.db
+*.sqlite
+*.sqlite3
+*.pvlt
+*.bak
+*.tmp
+temp/
+scratch/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS specific files
+.DS_Store
+Thumbs.db
+*.zone.identifier
+*Zone.Identifier

@@ -1,0 +1,41 @@
+{
+  "app-id": "studio.pixievault.host",
+  "runtime": "org.gnome.Platform",
+  "runtime-version": "45",
+  "sdk": "org.gnome.Sdk",
+  "sdk-extensions": [
+    "org.freedesktop.Sdk.Extension.rust-stable"
+  ],
+  "command": "pixievault",
+  "finish-args": [
+    "--share=ipc",
+    "--socket=x11",
+    "--socket=wayland",
+    "--device=dri",
+    "--filesystem=home",
+    "--talk-name=org.freedesktop.secrets"
+  ],
+  "build-options": {
+    "append-path": "/usr/lib/sdk/rust-stable/bin",
+    "env": {
+      "CARGO_HOME": "/run/build/pixievault/cargo"
+    }
+  },
+  "modules": [
+    {
+      "name": "pixievault",
+      "buildsystem": "simple",
+      "build-commands": [
+        "cargo build --release",
+        "install -D -m 755 target/release/pixievault /app/bin/pixievault",
+        "install -D -m 644 icons/128x128.png /app/share/icons/hicolor/128x128/apps/studio.pixievault.host.png"
+      ],
+      "sources": [
+        {
+          "type": "dir",
+          "path": "."
+        }
+      ]
+    }
+  ]
+}

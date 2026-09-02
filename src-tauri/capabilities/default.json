@@ -1,0 +1,10 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/v2/tooling/cli/schema.json",
+  "identifier": "default",
+  "description": "Default permissions for PixieVault Shell and Host IPC",
+  "windows": ["main", "*"],
+  "permissions": [
+    "core:default",
+    "opener:default"
+  ]
+}

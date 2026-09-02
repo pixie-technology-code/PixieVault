@@ -1,0 +1,50 @@
+[package]
+name = "pixievault"
+version = "0.2.0"
+description = "PixieVault Native Host Wrapper & Encrypted Application Runtime"
+authors = ["William Hart <williamhart@users.noreply.github.com>"]
+edition = "2021"
+default-run = "pixievault"
+
+[lib]
+name = "pixievault_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.0", features = [] }
+
+[dependencies]
+tauri = { version = "2.0", features = [] }
+tauri-plugin-opener = "2.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+aes-gcm = "0.10"
+argon2 = "0.5"
+base64 = "0.22"
+zeroize = { version = "1.8", features = ["derive"] }
+rand = "0.8"
+sha2 = "0.10"
+chrono = { version = "0.4", features = ["serde"] }
+tokio = { version = "1.40", features = ["full"] }
+thiserror = "1.0"
+zip = { version = "2.2", default-features = false, features = ["deflate"] }
+ed25519-dalek = { version = "2.1", features = ["rand_core"] }
+rfd = "0.15"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "blocking"] }
+tempfile = "3.12"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.58", features = [
+    "Security_Credentials_UI",
+    "Foundation",
+    "Foundation_Collections",
+    "Win32_Security_Credentials"
+] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc = "0.2"
+cocoa = "0.26"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
