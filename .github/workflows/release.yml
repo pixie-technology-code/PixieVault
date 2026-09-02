@@ -88,7 +88,7 @@ jobs:
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev patchelf xdg-utils bubblewrap
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev patchelf xdg-utils bubblewrap libfuse2
 
       - name: Install Tauri v2 CLI
         run: npm install -g @tauri-apps/cli@^2.0.0
@@ -101,6 +101,7 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPIMAGE_EXTRACT_AND_RUN: 1
         with:
           tagName: ${{ needs.tag-check.outputs.tag_name }}
           releaseName: 'PixieVault Host Runtime ${{ needs.tag-check.outputs.tag_name }}'
